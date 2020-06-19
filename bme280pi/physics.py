@@ -19,6 +19,9 @@ def pressure_function(pressure):
     Output:
        - pressure function value
     """
+    assert isinstance(pressure, (float, int))
+    assert pressure > 0
+    assert pressure <= 1100
     return 1.0016 + 3.16 * 1e-6 * pressure - 0.074 / pressure
 
 
@@ -47,6 +50,19 @@ def calculate_abs_humidity(pressure, temperature, rel_humidity):
         Output:
 
         """
+    assert isinstance(pressure, (float, int))
+    assert isinstance(temperature, (float, int))
+    assert isinstance(rel_humidity, (float, int))
+
+    assert pressure > 0
+    assert pressure <= 1100
+
+    assert rel_humidity >= 0
+    assert rel_humidity <= 100
+
+    assert temperature > -100
+    assert temperature < 100
+
     # saturation vapor pressure in pure phase
     e_w = 6.112 * math.exp(17.62 * temperature / (243.12 + temperature))
 
@@ -60,7 +76,7 @@ def calculate_abs_humidity(pressure, temperature, rel_humidity):
     return vapor_pressure / (461.5 * (273.15 + temperature))
 
 
-def convert_pressure(pressure, unit):
+def convert_pressure(pressure, unit='hPa'):
     """
     Converts pressure from hPa (input) to the desired unit.
     Available options are:
@@ -70,6 +86,9 @@ def convert_pressure(pressure, unit):
      - atm (`unit='atm'`)
      - mm Hg (`unit='mmHg'`)
     """
+    assert isinstance(pressure, (float, int))
+    assert pressure > 0
+    assert pressure < 1100
     if unit == "hPa":
         return pressure
     if unit == "Pa":
@@ -84,7 +103,7 @@ def convert_pressure(pressure, unit):
     raise Exception("Unknown pressure unit: " + unit)
 
 
-def convert_temperature(temperature, unit):
+def convert_temperature(temperature, unit='C'):
     """
     Converts temperature from Celsius (input) to the desired unit.
     Available options are:
@@ -92,6 +111,10 @@ def convert_temperature(temperature, unit):
     - Fahrenheit (`unit='F'`)
     - Kelvin (`unit='K'`)
     """
+    assert isinstance(temperature, (float, int))
+    assert temperature > -100
+    assert temperature < 100
+
     if unit == 'C':
         return temperature
 
@@ -109,5 +132,8 @@ def round_to_n_significant_digits(value, n_digits):
     Round to n significant digits, e.g. for 1234 the result
     with 2 significant digits would be 1200.
     """
+    assert isinstance(value, (float, int))
+    assert isinstance(n_digits, int)
+    assert n_digits > 0
 
     return round(value, n_digits - 1 - int(math.floor(math.log10(abs(value)))))
