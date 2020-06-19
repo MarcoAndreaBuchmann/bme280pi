@@ -1,0 +1,45 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6.1
+
+    working_directory: ~/testing_bme280pi
+
+    steps:
+      - checkout
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
+      - restore_cache:  # ensure this step occurs *before* installing dependencies
+          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+      - run:
+          name: install virtual environment
+          command: |
+            sudo pip install pipenv
+            pipenv install
+            pip install --upgrade pip
+            pip install coverage
+      - run:
+          name: install dependencies
+          command: |
+            pipenv run python setup.py develop
+      - save_cache:
+          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+          paths:
+            - ".venv"
+            - "/usr/local/bin"
+            - "/usr/local/lib/python3.6/site-packages"
+
+      - run:
+          name: run tests
+          command: |
+            pipenv run python setup.py test
+            pipenv coverage run --include=bme280pi/* -m pytest test/*
+            pipenv coverage report
+            pipenv coverage html
+     - store_artifacts:
+          path: htmlcov
