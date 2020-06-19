@@ -6,14 +6,14 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.6.1
+      - image: circleci/python:3.7-node-browsers-legacy
 
     working_directory: ~/testing_bme280pi
 
     steps:
       - checkout
       - run: sudo chown -R circleci:circleci /usr/local/bin
-      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.7/site-packages
       - restore_cache:  # ensure this step occurs *before* installing dependencies
           key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
       - run:
@@ -23,6 +23,9 @@ jobs:
             pipenv install
             pip install --upgrade pip
             pip install coverage
+            pip install pytest
+            pip install mock
+            pip install smbus
       - run:
           name: install dependencies
           command: |
@@ -32,7 +35,7 @@ jobs:
           paths:
             - ".venv"
             - "/usr/local/bin"
-            - "/usr/local/lib/python3.6/site-packages"
+            - "/usr/local/lib/python3.7/site-packages"
 
       - run:
           name: run tests
@@ -42,9 +45,15 @@ jobs:
       - run:
           name: run coverage
           command: |
-            $HOME/.local/bin/coverage run --include=bme280pi/* -m pytest test/*
-            $HOME/.local/bin/coverage report
-            $HOME/.local/bin/coverage html
+            pipenv run coverage run --include=bme280pi/* -m pytest test/*
+            pipenv run coverage report
+            pipenv run coverage html
 
       - store_artifacts:
          path: htmlcov
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+    - build
