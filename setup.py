@@ -15,6 +15,6 @@ setup(name='bme280pi',
       url='https://www.github.com/MarcoAndreaBuchmann/bme280pi',
       packages=find_packages(),
       setup_requires=["pytest-runner"],
-      tests_require=["pytest"],
+      tests_require=["pytest", "mock"],
       install_requires=['smbus'],
       )
