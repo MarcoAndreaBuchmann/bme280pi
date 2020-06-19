@@ -2,6 +2,7 @@
 Contains the detect_raspberry_pi_version function, which
 detects the version of the Raspberry Pi used.
 """
+import warnings
 
 
 def detect_raspberry_pi_version():
@@ -30,16 +31,18 @@ def detect_raspberry_pi_version():
                        'a22082': 'Pi 3 Model B',
                        '9000c1': 'Pi Zero W',
                        'c03111': 'Pi 4 Model B',
+                       'abcdef': 'TestModel',
                        '0000': 'Unknown'}
     revision = "0000"
     try:
         cpuinfo = open("/proc/cpuinfo", "r")
         for line in cpuinfo:
             if line.find("Revision") >= 0:
-                revision = line.replace(" ", "").split(":")[1]
+                revision = line.rstrip().replace(" ", "").split(":")[1]
         cpuinfo.close()
     except FileNotFoundError:
-        print("Could not find /proc/cpuinfo")
+        warnings.warn("Could not find /proc/cpuinfo")
+        return "Unknown"
 
     if revision in known_revisions:
         return known_revisions[revision]
