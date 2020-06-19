@@ -44,9 +44,9 @@ class Sensor:
         - store information about the sensor in the class
         """
         self.device_id = 0x76
-        self.bus = self.initialize_bus()
+        self.bus = self._initialize_bus()
 
-        self.chip_id, self.chip_version = self.get_info_about_sensor()
+        self.chip_id, self.chip_version = self._get_info_about_sensor()
 
     def get_temperature(self, unit='C'):
         """
@@ -119,7 +119,7 @@ class Sensor:
         print("Pressure:    ", pressure, pressure_unit)
 
     @staticmethod
-    def initialize_bus():
+    def _initialize_bus():
         """
         Detect the raspberry pi version and initialize the bus
         Note that the Raspberry Pi version detection is necessary because
@@ -136,7 +136,7 @@ class Sensor:
 
         return bus
 
-    def get_info_about_sensor(self):
+    def _get_info_about_sensor(self):
         """
         Obtain chip ID and version from sensor
         """
@@ -145,8 +145,3 @@ class Sensor:
                                                              reg_id,
                                                              2)
         return chip_id, chip_version
-
-
-s = Sensor()
-print(s.get_data())
-s.print_data()
