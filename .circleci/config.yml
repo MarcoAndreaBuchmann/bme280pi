@@ -34,6 +34,7 @@ jobs:
             - "/usr/local/bin"
             - "/usr/local/lib/python3.6/site-packages"
 
+      # run tests!
       - run:
           name: run tests
           command: |
@@ -41,5 +42,6 @@ jobs:
             pipenv coverage run --include=bme280pi/* -m pytest test/*
             pipenv coverage report
             pipenv coverage html
-     - store_artifacts:
-          path: htmlcov
+
+      - store_artifacts:
+         path: htmlcov
