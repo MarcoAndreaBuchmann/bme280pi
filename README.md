@@ -1,5 +1,6 @@
 # bme280pi: the BME280 Sensor Reader for Raspberry Pi
 
+[![Build Status](https://circleci.com/gh/MarcoAndreaBuchmann/bme280pi/tree/master.svg?style=shield&circle-token=e0151abb5a4574b25423263472584f6883a91a77)](https://app.circleci.com/pipelines/github/MarcoAndreaBuchmann/bme280/)
 
 ## How to Install
 
