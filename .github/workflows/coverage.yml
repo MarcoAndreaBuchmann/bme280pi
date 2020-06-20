@@ -1,0 +1,41 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Coverage
+
+on: ["push", "pull_request"]
+
+jobs:
+  build:
+
+    name: Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest mock coverage anybadge
+        python setup.py develop
+    - name: Run coverage
+      env:
+        EXAMPLE_SECRET: ${{ secrets.EXAMPLE_SECRET }}
+        FERMI_KEY: ${{ secrets.FERMI_KEY }}
+        FERMI_DESTINATION: ${{ secrets.FERMI_DESTINATION }}
+      run: |
+        coverage run --include=bme280pi/* -m pytest test/*
+        coverage report
+        coverage=`coverage report | grep TOTAL | awk '{ print $4 }' | sed 's/%//'`
+        echo "Determined coverage to be: $coverage"
+        anybadge --value=$coverage --file=coverage.svg coverage
+        the_path=fileToUpload=@`pwd`/coverage.svg
+        curl -F "secret=${FERMI_KEY}" -F $the_path ${FERMI_DESTINATION}
+    - uses: actions/upload-artifact@v2
+      with:
+        name: coverage.svg
+        path: coverage.svg
