@@ -22,8 +22,8 @@ For a walk-through with screenshots see the references below.
 Install `python-smbus` and `i2ctools`:
 `sudo apt-get update && sudo apt-get install -y python-smbus i2c-tools`
 
-Then, shut down your Raspberry Pi:
-`sudo halt`
+Then, shut down your Raspberry Pi: `sudo halt` . Disconnect your Raspberry Pi power supply.
+You are now ready to connect the BME280 sensor.
  
 ### Connect the BME280 sensor
 
