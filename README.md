@@ -1,5 +1,6 @@
 [![Build Status](https://github.com/MarcoAndreaBuchmann/bme280pi/workflows/Tests/badge.svg)](https://github.com/MarcoAndreaBuchmann/bme280pi/actions?query=workflow%3ATests)
 [![Coverage](http://fermion.ch/bme280pi_badges/coverage.svg)](https://github.com/MarcoAndreaBuchmann/bme280pi/actions?query=workflow%3ACoverage)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/fb51e4dac5ee4e4bbf55c6615aae3597)](https://app.codacy.com/manual/MarcoAndreaBuchmann/bme280pi?utm_source=github.com&utm_medium=referral&utm_content=MarcoAndreaBuchmann/bme280pi&utm_campaign=Badge_Grade_Dashboard)
 
 # bme280pi: the BME280 Sensor Reader for Raspberry Pi
 
