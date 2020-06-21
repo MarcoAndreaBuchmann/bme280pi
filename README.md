@@ -14,7 +14,7 @@
 5) Select "Ok"
 6) Reboot
 
-For a walk-through with screenshots see reference [2] below.
+For a walk-through with screenshots see the references below.
 
 ### Install Utilities
 
@@ -35,13 +35,14 @@ You can then install this module by running `python setup.py install`
 ### Using it in your script
 
 You can initialize the sensor class as follows:
-```
+
+```python
 from bme280pi import Sensor
 
 sensor = Sensor()
 ```
 
-You can then use the `sensor` to fetch data, `sensor.get_data()`, which will return a dictionary
+You can then use the `sensor` object to fetch data, `sensor.get_data()`, which will return a dictionary
 with temperature, humidity, and pressure readings.
 
 You can also just get the temperature (`sensor.get_temperature()`),
@@ -54,7 +55,7 @@ or `sensor.get_pressure(unit='mmHg')`.
 You can e.g. query the sensor every 10 seconds, and add the results to a dictionary, and then
 turn that into a pandas DataFrame and plot that (requires matplotlib and pandas):
 
-```
+```python
 import time
 import datetime
 
@@ -87,12 +88,8 @@ plt.title("Relative Humidity (%)")
 plt.savefig("Measurements.png")
 ```
 
-
-
 ### References
 
-[1] https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/
+https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/
 
-[2] https://www.raspberrypi-spy.co.uk/2016/07/using-bme280-i2c-temperature-pressure-sensor-in-python/
-
-
+https://www.raspberrypi-spy.co.uk/2016/07/using-bme280-i2c-temperature-pressure-sensor-in-python/

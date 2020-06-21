@@ -1,4 +1,6 @@
 """
+Detect the Raspberry Pi Version
+
 Contains the detect_raspberry_pi_version function, which
 detects the version of the Raspberry Pi used.
 """

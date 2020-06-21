@@ -11,7 +11,14 @@ from bme280pi.readout import (get_short, get_unsigned_short, get_character,
 
 
 class FakeBus:
+    """
+    This is a fake bus class (to simulate SMBus for tests)
+    This class records all commands.
+    """
     def __init__(self):
+        """
+        Initialize a fake bus class
+        """
         self.commands = []
 
     def write_byte_data(self, address, register, value, force=None):

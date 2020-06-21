@@ -7,6 +7,12 @@ from bme280pi.sensor import Sensor
 
 class FakeSMBus:
     def __init__(self, value):
+        """
+        This is a fake bus class (to replace SMBus).
+        It records the value it is initialized with, and makes
+        it accessible for checks. It also reports its chip ID and
+        version as fake.
+        """
         self.value = value
 
     def read_i2c_block_data(self, address, register, length, force=None):
@@ -51,6 +57,11 @@ class test_initialize_bus(unittest.TestCase):
 
 class FakeDataBus:
     def __init__(self):
+        """
+        A further fake bus class (to replace SMBus).
+        This version returns data that is a realistic representation
+        of actual data
+        """
         self.i_read = -1
         self.data = [['fake_chip_id', 'fake_version'],
                      [96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11,
