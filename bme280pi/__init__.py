@@ -1,5 +1,4 @@
 """
-
 This is the bme280pi package, to read out the BME280 sensor on Raspberry Pi.
 
 Here's a quick overview of how this package can be used:
