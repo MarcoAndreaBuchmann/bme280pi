@@ -91,6 +91,6 @@ plt.savefig("Measurements.png")
 
 ### References
 
-https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/
+[Bosch BME280 Data Sheet](https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/)
 
-https://www.raspberrypi-spy.co.uk/2016/07/using-bme280-i2c-temperature-pressure-sensor-in-python/
+[Raspberry-Spy: Using BME280 sensor in python](https://www.raspberrypi-spy.co.uk/2016/07/using-bme280-i2c-temperature-pressure-sensor-in-python/)
