@@ -90,7 +90,7 @@ class TestSensor(TestCase):
         self.assertEqual(sensor.chip_id, "fake_chip_id")
         self.assertEqual(sensor.chip_version, "fake_version")
 
-        data = s.get_data()
+        data = sensor.get_data()
         self.assertLess(abs(data['temperature'] - 24.65), 1e-4)
         self.assertLess(abs(data['pressure'] - 969.1056565652227), 1e-4)
         self.assertLess(abs(data['humidity'] - 41.07329061361983), 1e-4)
