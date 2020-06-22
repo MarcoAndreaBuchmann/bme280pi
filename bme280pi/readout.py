@@ -215,6 +215,36 @@ def extract_values(data, dig_t, dig_p, dig_h):
     return temperature, pressure, humidity
 
 
+def validate_oversampling(oversampling=None):
+    """
+    Validates the `oversampling` parameter
+
+    This parameter can either be None (to use the default values) or
+    it can be a dictionary containing the three keys "temperature",
+    "humidity", and "pressure".
+
+    Inputs:
+        - oversampling: either None or a dictionary
+    """
+    if oversampling is None:
+        oversampling = {'temperature': 2,
+                        'pressure': 2,
+                        'humidity': 2}
+
+    if not isinstance(oversampling, dict):
+        raise TypeError("oversampling must be a dictionary")
+
+    for keyword in ['temperature', 'pressure', 'humidity']:
+        if keyword not in oversampling:
+            raise KeyError("oversampling does not contain all necessary" +
+                           "keys: " + keyword + " is missing!")
+    for keyword in oversampling:
+        if keyword not in ['temperature', 'pressure', 'humidity']:
+            raise KeyError("key " + keyword + " in oversampling is unknown")
+
+    return oversampling
+
+
 def read_sensor(bus, address, reg_data=0xF7,
                 oversampling=None):
     """
@@ -235,21 +265,7 @@ def read_sensor(bus, address, reg_data=0xF7,
     https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/
     """
 
-    if oversampling is None:
-        oversampling = {'temperature': 2,
-                        'pressure': 2,
-                        'humidity': 2}
-
-    if not isinstance(oversampling, dict):
-        raise TypeError("oversampling must be a dictionary")
-
-    for keyword in ['temperature', 'pressure', 'humidity']:
-        if keyword not in oversampling:
-            raise KeyError("oversampling does not contain all necessary" +
-                           "keys: " + keyword + " is missing!")
-    for keyword in oversampling:
-        if keyword not in ['temperature', 'pressure', 'humidity']:
-            raise KeyError("key " + keyword + " in oversampling is unknown")
+    oversampling = validate_oversampling(oversampling=oversampling)
 
     cal, data = read_raw_sensor(bus=bus,
                                 address=address,
