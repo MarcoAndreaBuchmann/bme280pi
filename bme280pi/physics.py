@@ -1,5 +1,5 @@
 """
-Physics functions
+Physics functions for pressure/temperature/humidity/...
 
 Provides functions related to converting humidity from relative
 to absolute humidity. Also provides functions for converting
@@ -13,17 +13,42 @@ https://planetcalc.com/2167/
 import math
 
 
+def validate_pressure(pressure):
+    """Makes sure pressure is valid"""
+    if not isinstance(pressure, (float, int)):
+        raise TypeError("Pressure must be int or float")
+
+    if pressure <= 0 or pressure > 1100:
+        raise ValueError("Pressure must be between 0 and 1100")
+
+
+def validate_temperature(temperature):
+    """Makes sure pressure is valid"""
+    if not isinstance(temperature, (float, int)):
+        raise TypeError("Temperature must be int or float")
+
+    if temperature < -100 or temperature > 100:
+        raise ValueError("Temperature must be between -100 and +100")
+
+
+def validate_humidity(rel_humidity):
+    """Makes sure relative humidity is valid"""
+    if not isinstance(rel_humidity, (float, int)):
+        raise TypeError("Relative Humidity must be int or float")
+    if rel_humidity < 0 or rel_humidity > 100:
+        raise ValueError("Rel. humidity must be between 0 and 100")
+
+
 def pressure_function(pressure):
     """
     Calculates the pressure function for the saturation vapor
+
     Inputs:
        - pressure (in hPa)
     Output:
        - pressure function value
     """
-    assert isinstance(pressure, (float, int))
-    assert pressure > 0
-    assert pressure <= 1100
+    validate_pressure(pressure)
     return 1.0016 + 3.16 * 1e-6 * pressure - 0.074 / pressure
 
 
@@ -49,21 +74,13 @@ def calculate_abs_humidity(pressure, temperature, rel_humidity):
         - pressure (in hPa)
         - temperature (in C)
         - relative humidity (in %)
-        Output:
+    Output:
+        - humidity measurement value
 
         """
-    assert isinstance(pressure, (float, int))
-    assert isinstance(temperature, (float, int))
-    assert isinstance(rel_humidity, (float, int))
-
-    assert pressure > 0
-    assert pressure <= 1100
-
-    assert rel_humidity >= 0
-    assert rel_humidity <= 100
-
-    assert temperature > -100
-    assert temperature < 100
+    validate_pressure(pressure)
+    validate_temperature(temperature)
+    validate_humidity(rel_humidity)
 
     # saturation vapor pressure in pure phase
     e_w = 6.112 * math.exp(17.62 * temperature / (243.12 + temperature))
@@ -87,20 +104,23 @@ def convert_pressure(pressure, unit='hPa'):
      - kPa (`unit='kPa'`)
      - atm (`unit='atm'`)
      - mm Hg (`unit='mmHg'`)
+
+    Inputs:
+        - pressure (in hPa)
+        - unit to convert pressure to (hPa/Pa/kPa/atm/mmHg)
+    Output:
+        - pressure in desired unit
     """
-    assert isinstance(pressure, (float, int))
-    assert pressure > 0
-    assert pressure < 1100
-    if unit == "hPa":
-        return pressure
-    if unit == "Pa":
-        return 100 * pressure
-    if unit == "kPa":
-        return 0.1 * pressure
-    if unit == "atm":
-        return pressure * 9.8692316931427E-4
-    if unit == "mmHg":
-        return pressure * 0.750062
+    validate_pressure(pressure)
+
+    conversion_factor = {"hPa": 1,
+                         "Pa": 100,
+                         "kPa": 0.1,
+                         "atm": 9.8692316931427E-4,
+                         "mmHg": 0.750062}
+
+    if unit in conversion_factor:
+        return conversion_factor[unit] * pressure
 
     raise Exception("Unknown pressure unit: " + unit)
 
@@ -112,10 +132,14 @@ def convert_temperature(temperature, unit='C'):
     - Celsius (`unit='C'`)
     - Fahrenheit (`unit='F'`)
     - Kelvin (`unit='K'`)
+
+    Inputs:
+        - temperature (in C)
+        - unit to convert temperature to (C/F/K)
+    Output:
+        - temperature in desired unit
     """
-    assert isinstance(temperature, (float, int))
-    assert temperature > -100
-    assert temperature < 100
+    validate_temperature(temperature)
 
     if unit == 'C':
         return temperature
@@ -133,9 +157,17 @@ def round_to_n_significant_digits(value, n_digits):
     """
     Round to n significant digits, e.g. for 1234 the result
     with 2 significant digits would be 1200.
+    Input:
+        - the value to be rounded
+        - the desired number of significant digits
+    Output:
+        - the value rounded to the desired number of significant digits
     """
-    assert isinstance(value, (float, int))
-    assert isinstance(n_digits, int)
-    assert n_digits > 0
+    if not isinstance(value, (float, int)):
+        raise TypeError("Value must be int or float")
+    if not isinstance(n_digits, int):
+        raise TypeError("Number of digits must be int")
+    if not n_digits > 0:
+        raise ValueError("Number of digits must be greater than zero")
 
     return round(value, n_digits - 1 - int(math.floor(math.log10(abs(value)))))
