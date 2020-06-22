@@ -78,7 +78,7 @@ class test_calculate_abs_humidity(TestCase):
             result = calculate_abs_humidity(pressure=test_pressure[i_test],
                                             temperature=test_temp[i_test],
                                             rel_humidity=test_rel[i_test])
-            self.assertLess(abs(result - correct_values[i_test]), 1e-6)
+            self.assertLess(abs(result - correct_value), 1e-6)
 
     def test_valid_range(self):
         with self.assertRaises(ValueError):
