@@ -1,5 +1,4 @@
-"""
-Detect the Raspberry Pi Version
+"""Detect the Raspberry Pi Version
 
 Contains the detect_raspberry_pi_version function, which
 detects the version of the Raspberry Pi used.
@@ -7,9 +6,10 @@ detects the version of the Raspberry Pi used.
 import warnings
 
 
-def detect_raspberry_pi_version():
+def get_list_of_revisions():
     """
-    Detect the Raspberry Pi Version
+    Provides a list of known Raspberry Pi CPU IDs and the corresponding
+    Raspberry Pi model name ("revision")
     """
     known_revisions = {'0002': 'Model B R1',
                        '0003': 'Model B R1',
@@ -35,7 +35,15 @@ def detect_raspberry_pi_version():
                        'c03111': 'Pi 4 Model B',
                        'abcdef': 'TestModel',
                        '0000': 'Unknown'}
+    return known_revisions
+
+
+def detect_raspberry_pi_version():
+    """
+    Detect the Raspberry Pi Version
+    """
     revision = "0000"
+    known_revisions = get_list_of_revisions()
     try:
         cpuinfo = open("/proc/cpuinfo", "r")
         for line in cpuinfo:
