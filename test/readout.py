@@ -1,4 +1,4 @@
-import unittest
+from unittest import TestCase
 
 from bme280pi.readout import (get_short, get_unsigned_short, get_character,
                               get_unsigned_character, read_raw_sensor,
@@ -9,11 +9,14 @@ from bme280pi.readout import (get_short, get_unsigned_short, get_character,
                               improve_humidity_measurement, extract_values,
                               read_sensor)
 
+from .sensor import FakeDataBus
 
-class FakeBus:
+
+class FakeRecordingBus:
     """
     This is a fake bus class (to simulate SMBus for tests)
-    This class records all commands.
+    This "bus" class records all commands, which allows tests
+    to check that the right sequence is called.
     """
     def __init__(self):
         """
@@ -31,41 +34,40 @@ class FakeBus:
         return len(self.commands)
 
 
-class test_get_short(unittest.TestCase):
+class test_get_short(TestCase):
     def test(self):
         test_result = get_short(data=[129, 1, 0, 16, 44, 3, 30], index=0)
         self.assertLess(abs(test_result - 385), 1e-6)
 
 
-class test_get_unsigned_short(unittest.TestCase):
+class test_get_unsigned_short(TestCase):
     def test(self):
         test_result = get_unsigned_short(data=[129, 1, 0, 16, 44, 3, 30],
                                          index=0)
         self.assertLess(abs(test_result - 385), 1e-6)
 
 
-class test_get_character(unittest.TestCase):
+class test_get_character(TestCase):
     def test(self):
         test_result = get_character(data=[129, 1, 0, 16, 44, 3, 30], index=0)
         self.assertLess(abs(test_result + 127), 1e-6)
 
 
-class test_get_unsigned_character(unittest.TestCase):
+class test_get_unsigned_character(TestCase):
     def test(self):
         test_result = get_unsigned_character(data=[129, 1, 0, 16, 44, 3, 30],
                                              index=0)
         self.assertLess(abs(test_result - 129), 1e-6)
 
 
-class test_read_raw_sensor(unittest.TestCase):
+class test_read_raw_sensor(TestCase):
     def test(self):
-        bus = FakeBus()
+        bus = FakeRecordingBus()
         cals, data = read_raw_sensor(bus=bus,
                                      address="address",
                                      oversampling={'temperature': 2,
                                                    'pressure': 2,
                                                    'humidity': 2},
-                                     mode=1,
                                      reg_data="reg_data")
         self.assertEqual(cals[0], 3)
         self.assertEqual(cals[1], 4)
@@ -80,20 +82,20 @@ class test_read_raw_sensor(unittest.TestCase):
                             ['read_i2c_block_data', 'address', 'reg_data', 8,
                              None]]
 
-        for i in range(len(correct_commands)):
+        for i, correct_value in enumerate(correct_commands):
             # check type of command
-            self.assertEqual(bus.commands[i][0], correct_commands[i][0])
+            self.assertEqual(bus.commands[i][0], correct_value[0])
             # check address
-            self.assertEqual(bus.commands[i][1], correct_commands[i][1])
+            self.assertEqual(bus.commands[i][1], correct_value[1])
             # check register
-            self.assertEqual(bus.commands[i][2], correct_commands[i][2])
+            self.assertEqual(bus.commands[i][2], correct_value[2])
             # check length or value
-            self.assertEqual(bus.commands[i][3], correct_commands[i][3])
+            self.assertEqual(bus.commands[i][3], correct_value[3])
             # check whether force was set
-            self.assertEqual(bus.commands[i][4], correct_commands[i][4])
+            self.assertEqual(bus.commands[i][4], correct_value[4])
 
 
-class test_get_modified(unittest.TestCase):
+class test_get_modified(TestCase):
     def test(self):
         cals = ([96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11, 232, 38,
                  42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
@@ -107,7 +109,7 @@ class test_get_modified(unittest.TestCase):
                          50)
 
 
-class test_process_calibration_data(unittest.TestCase):
+class test_process_calibration_data(TestCase):
     def test(self):
         cals = ([96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11, 232, 38,
                  42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
@@ -122,19 +124,19 @@ class test_process_calibration_data(unittest.TestCase):
         dig_t, dig_p, dig_h = process_calibration_data(cals)
 
         # check temperature readings
-        for i in range(len(dig_t)):
-            self.assertLess(abs(correct_dig_t[i] - dig_t[i]), 1e-4)
+        for i, dig_t_i in enumerate(dig_t):
+            self.assertLess(abs(correct_dig_t[i] - dig_t_i), 1e-4)
 
         # check pressure readings
-        for i in range(len(dig_p)):
-            self.assertLess(abs(correct_dig_p[i] - dig_p[i]), 1e-4)
+        for i, dig_p_i in enumerate(dig_p):
+            self.assertLess(abs(correct_dig_p[i] - dig_p_i), 1e-4)
 
         # check humidity readings
-        for i in range(len(dig_h)):
-            self.assertLess(abs(correct_dig_h[i] - dig_h[i]), 1e-4)
+        for i, dig_h_i in enumerate(dig_h):
+            self.assertLess(abs(correct_dig_h[i] - dig_h_i), 1e-4)
 
 
-class test_extract_raw_values(unittest.TestCase):
+class test_extract_raw_values(TestCase):
     def test(self):
         data = [76, 60, 0, 129, 49, 128, 94, 110]
         raw_pressure, raw_temperature, raw_humidity = extract_raw_values(data)
@@ -143,7 +145,7 @@ class test_extract_raw_values(unittest.TestCase):
         self.assertEqual(raw_humidity, 24174)
 
 
-class test_improve_temperature_measurement(unittest.TestCase):
+class test_improve_temperature_measurement(TestCase):
     def test(self):
         temp_raw = 529168
         dig_t = [28256, 26827, 50]
@@ -152,7 +154,7 @@ class test_improve_temperature_measurement(unittest.TestCase):
         self.assertEqual(t_fine, 126213)
 
 
-class test_improve_pressure_measurement(unittest.TestCase):
+class test_improve_pressure_measurement(TestCase):
     def test(self):
         # normal case
         raw_pressure = 312272
@@ -161,6 +163,7 @@ class test_improve_pressure_measurement(unittest.TestCase):
         pressure = improve_pressure_measurement(raw_pressure, dig_p, t_fine)
         self.assertLess(abs(pressure - 96909.62784910419), 1e-4)
 
+    def test_special_case(self):
         # special case (var1 = 0)
         raw_pressure = 312272
         dig_p = [0, 6034, -2009, -3141, 8460, 523, -7938, 6421, -4430]
@@ -169,7 +172,7 @@ class test_improve_pressure_measurement(unittest.TestCase):
         self.assertEqual(pressure, 0)
 
 
-class test_improve_humidity_measurement(unittest.TestCase):
+class test_improve_humidity_measurement(TestCase):
     def test(self):
         raw_humidity = 24185
         dig_h = [75, 385, 0, 268, 50, 30]
@@ -178,7 +181,7 @@ class test_improve_humidity_measurement(unittest.TestCase):
         self.assertLess(abs(humidity - 41.07923074200165), 1e-4)
 
 
-class test_extract_values(unittest.TestCase):
+class test_extract_values(TestCase):
     def test(self):
         data = [76, 59, 0, 129, 48, 0, 94, 121]
         dig_t = [28256, 26827, 50]
@@ -191,26 +194,9 @@ class test_extract_values(unittest.TestCase):
         self.assertLess(abs(h - 41.07923395171727), 1e-4)
 
 
-class FakeDataBus:
-    def __init__(self):
-        self.i_read = -1
-        self.data = [[96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11,
-                      232, 38, 42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
-                     [75],
-                     [129, 1, 0, 16, 44, 3, 30],
-                     [76, 60, 128, 129, 49, 128, 94, 120]]
-
-    def write_byte_data(self, address, register, value, force=None):
-        pass
-
-    def read_i2c_block_data(self, address, register, length, force=None):
-        self.i_read += 1
-        return self.data[self.i_read]
-
-
-class test_read_sensor(unittest.TestCase):
+class test_read_sensor(TestCase):
     def test(self):
-        fake_data_bus = FakeDataBus()
+        fake_data_bus = FakeDataBus(0)
         correct_result = {'temperature': 24.65,
                           'pressure': 969.1056565652227,
                           'humidity': 41.07329061361983}
@@ -221,3 +207,25 @@ class test_read_sensor(unittest.TestCase):
         for k in test_result:
             self.assertLess(abs(test_result[k] - correct_result[k]),
                             1e-4)
+
+    def test_bad_inputs(self):
+        fake_data_bus = FakeDataBus(0)
+        with self.assertRaises(TypeError):
+            _ = read_sensor(bus=fake_data_bus,
+                            address="fake_address",
+                            oversampling="some_string")
+        with self.assertRaises(TypeError):
+            _ = read_sensor(bus=fake_data_bus,
+                            address="fake_address",
+                            oversampling=2)
+        with self.assertRaises(KeyError):
+            _ = read_sensor(bus=fake_data_bus,
+                            address="fake_address",
+                            oversampling={'something': 2})
+        with self.assertRaises(KeyError):
+            _ = read_sensor(bus=fake_data_bus,
+                            address="fake_address",
+                            oversampling={'pressure': 2,
+                                          'temperature': 2,
+                                          'humidity': 2,
+                                          'wokeness': 10})
