@@ -1,6 +1,5 @@
 import io
-import unittest
-import mock
+from unittest import TestCase, mock
 
 from bme280pi.sensor import Sensor
 
@@ -15,11 +14,12 @@ class FakeSMBus:
         """
         self.value = value
 
-    def read_i2c_block_data(self, address, register, length, force=None):
+    @staticmethod
+    def read_i2c_block_data(address, register, length, force=None):
         return "fake_chip_id", "fake_version"
 
 
-class test_initialize_bus(unittest.TestCase):
+class test_initialize_bus(TestCase):
     def test(self):
         # this test requires us to override the processor type and smbbus
         known_revisions = {'0002': 0,
@@ -56,13 +56,13 @@ class test_initialize_bus(unittest.TestCase):
 
 
 class FakeDataBus:
-    def __init__(self):
+    def __init__(self, starting_point=-1):
         """
         A further fake bus class (to replace SMBus).
         This version returns data that is a realistic representation
         of actual data
         """
-        self.i_read = -1
+        self.i_read = starting_point
         self.data = [['fake_chip_id', 'fake_version'],
                      [96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11,
                       232, 38, 42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
@@ -82,8 +82,8 @@ def initialize_fake_bus(*args, **kwargs):
     return FakeDataBus()
 
 
-class test_sensor(unittest.TestCase):
-    def test(self):
+class test_sensor(TestCase):
+    def test_get_data(self):
         Sensor._initialize_bus = initialize_fake_bus
         s = Sensor()
         self.assertEqual(s.chip_id, "fake_chip_id")
@@ -94,14 +94,17 @@ class test_sensor(unittest.TestCase):
         self.assertLess(abs(data['pressure'] - 969.1056565652227), 1e-4)
         self.assertLess(abs(data['humidity'] - 41.07329061361983), 1e-4)
 
+    def test_get_temperature(self):
         s = Sensor()
         temperature = s.get_temperature()
         self.assertLess(abs(temperature - 24.65), 1e-4)
 
+    def test_get_pressure(self):
         s = Sensor()
         pressure = s.get_pressure()
         self.assertLess(abs(pressure - 969.1056565652227), 1e-4)
 
+    def test_get_humidity(self):
         s = Sensor()
         humidity = s.get_humidity()
         self.assertLess(abs(humidity - 41.07329061361983), 1e-4)
@@ -111,7 +114,7 @@ class test_sensor(unittest.TestCase):
         self.assertLess(abs(humidity - 0.009291279797753835), 1e-4)
 
 
-class test_print_sensor(unittest.TestCase):
+class test_print_sensor(TestCase):
     def test(self):
         Sensor._initialize_bus = initialize_fake_bus
         s = Sensor()
@@ -126,6 +129,7 @@ class test_print_sensor(unittest.TestCase):
             s.print_data()
             self.assertEqual(fake_out.getvalue(), ref_message)
 
+    def test_print_with_absolute_humidity(self):
         s = Sensor()
         ref_message = "Temperature:  24.65 C\n" + \
                       "Humidity:     0.009291 kg / m^3\n" + \
