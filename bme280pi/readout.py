@@ -234,14 +234,6 @@ def validate_oversampling(oversampling=None):
     if not isinstance(oversampling, dict):
         raise TypeError("oversampling must be a dictionary")
 
-    for keyword in ['temperature', 'pressure', 'humidity']:
-        if keyword not in oversampling:
-            raise KeyError("oversampling does not contain all necessary" +
-                           "keys: " + keyword + " is missing!")
-    for keyword in oversampling:
-        if keyword not in ['temperature', 'pressure', 'humidity']:
-            raise KeyError("key " + keyword + " in oversampling is unknown")
-
     return oversampling
 
 
