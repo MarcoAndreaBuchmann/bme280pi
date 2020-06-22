@@ -9,12 +9,13 @@ and to round numbers to a n significant digits.
 source for formulae:
 https://planetcalc.com/2167/
 """
+
 import math
 
 
 def validate_pressure(pressure):
     """
-    Makes sure pressure is valid:
+    Validates pressure:
     - needs to be positive
     - needs to be smaller than 1100 (largest value ever was 1083)
 
@@ -30,7 +31,7 @@ def validate_pressure(pressure):
 
 def validate_temperature(temperature):
     """
-    Makes sure pressure is valid:
+    Validates pressure:
     - needs to be smaller than 100 degrees (humidity calculations
       don't make much sense above this temperature)
     - needs to be larger than -100 (same reason)
@@ -47,7 +48,7 @@ def validate_temperature(temperature):
 
 def validate_humidity(rel_humidity):
     """
-    Makes sure relative humidity is valid
+    Validates relative humidity:
     - relative humidity must be below 100%
     - relative humidity must be above 0%
 
