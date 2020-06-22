@@ -7,7 +7,7 @@ from bme280pi.physics import (validate_pressure, validate_temperature,
                               round_to_n_significant_digits)
 
 
-class test_validation(TestCase):
+class TestValidation(TestCase):
     def test_validate_pressure(self):
         with self.assertRaises(TypeError):
             validate_pressure("string_input")
@@ -33,7 +33,7 @@ class test_validation(TestCase):
             validate_humidity(123)
 
 
-class test_pressure_function(TestCase):
+class TestPressureFunction(TestCase):
     def test(self):
         test_values = [100, 800, 850, 900, 950, 1000, 1050, 1100]
         correct_values = [1.001176,
@@ -59,7 +59,7 @@ class test_pressure_function(TestCase):
             pressure_function('a')
 
 
-class test_calculate_abs_humidity(TestCase):
+class TestCalculateAbsHumidity(TestCase):
     def test(self):
         test_pressure = [100, 800, 850, 900, 950, 1000, 1050, 1100]
         test_temp = [-10, 0, 10, 15, 20, 25, 40, 60]
@@ -127,7 +127,7 @@ class test_calculate_abs_humidity(TestCase):
                                    rel_humidity='a')
 
 
-class test_convert_pressure(TestCase):
+class TestConvertPressure(TestCase):
     def test(self):
         test_values = [100, 500, 850, 900, 950, 1000, 1050, 1099]
 
@@ -156,7 +156,7 @@ class test_convert_pressure(TestCase):
             convert_pressure(123, 'UnknownUnit')
 
 
-class test_convert_temperature(TestCase):
+class TestConvertTemperature(TestCase):
     def test(self):
         test_values = [-50, -40, 30, 20, 10, 0, 12.34, 20, 30, 40, 50, 99]
 
@@ -183,7 +183,7 @@ class test_convert_temperature(TestCase):
             convert_temperature(23, 'UnknownUnit')
 
 
-class test_round_to_n_significant_digits(TestCase):
+class TestRoundToNSignificantDigits(TestCase):
     def test(self):
         multipliers = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
         test_values = [1.23456789 * m for m in multipliers]

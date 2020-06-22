@@ -28,13 +28,13 @@ class Sensor:
     You can also use `print_data()` for a nicer presentation.
 
     Example usage:
-    >>> s = Sensor()
-    >>> s.get_temperature(unit='C')
-    >>> s.get_temperature(unit='K')
-    >>> s.get_humidity(relative=True)
-    >>> s.get_humidity(relative=True)
-    >>> s.get_pressure(unit='hPa')
-    >>> s.get_pressure(unit='mmHg')
+    >>> sensor = Sensor()
+    >>> sensor.get_temperature(unit='C')
+    >>> sensor.get_temperature(unit='K')
+    >>> sensor.get_humidity(relative=True)
+    >>> sensor.get_humidity(relative=True)
+    >>> sensor.get_pressure(unit='hPa')
+    >>> sensor.get_pressure(unit='mmHg')
     """
     def __init__(self):
         """

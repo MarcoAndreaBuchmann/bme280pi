@@ -34,33 +34,33 @@ class FakeRecordingBus:
         return len(self.commands)
 
 
-class test_get_short(TestCase):
+class TestGetShort(TestCase):
     def test(self):
         test_result = get_short(data=[129, 1, 0, 16, 44, 3, 30], index=0)
         self.assertLess(abs(test_result - 385), 1e-6)
 
 
-class test_get_unsigned_short(TestCase):
+class TestGetUnsignedshort(TestCase):
     def test(self):
         test_result = get_unsigned_short(data=[129, 1, 0, 16, 44, 3, 30],
                                          index=0)
         self.assertLess(abs(test_result - 385), 1e-6)
 
 
-class test_get_character(TestCase):
+class TestGetCharacter(TestCase):
     def test(self):
         test_result = get_character(data=[129, 1, 0, 16, 44, 3, 30], index=0)
         self.assertLess(abs(test_result + 127), 1e-6)
 
 
-class test_get_unsigned_character(TestCase):
+class TestGetUnsignedCharacter(TestCase):
     def test(self):
         test_result = get_unsigned_character(data=[129, 1, 0, 16, 44, 3, 30],
                                              index=0)
         self.assertLess(abs(test_result - 129), 1e-6)
 
 
-class test_read_raw_sensor(TestCase):
+class TestReadRawSensor(TestCase):
     def test(self):
         bus = FakeRecordingBus()
         cals, data = read_raw_sensor(bus=bus,
@@ -95,7 +95,7 @@ class test_read_raw_sensor(TestCase):
             self.assertEqual(bus.commands[i][4], correct_value[4])
 
 
-class test_get_modified(TestCase):
+class TestGetModified(TestCase):
     def test(self):
         cals = ([96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11, 232, 38,
                  42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
@@ -109,7 +109,7 @@ class test_get_modified(TestCase):
                          50)
 
 
-class test_process_calibration_data(TestCase):
+class TestProcessCalibration(TestCase):
     def test(self):
         cals = ([96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11, 232, 38,
                  42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
@@ -136,7 +136,7 @@ class test_process_calibration_data(TestCase):
             self.assertLess(abs(correct_dig_h[i] - dig_h_i), 1e-4)
 
 
-class test_extract_raw_values(TestCase):
+class TestExtractRawValues(TestCase):
     def test(self):
         data = [76, 60, 0, 129, 49, 128, 94, 110]
         raw_pressure, raw_temperature, raw_humidity = extract_raw_values(data)
@@ -145,7 +145,7 @@ class test_extract_raw_values(TestCase):
         self.assertEqual(raw_humidity, 24174)
 
 
-class test_improve_temperature_measurement(TestCase):
+class TestImproveTemperatureMeasurements(TestCase):
     def test(self):
         temp_raw = 529168
         dig_t = [28256, 26827, 50]
@@ -154,7 +154,7 @@ class test_improve_temperature_measurement(TestCase):
         self.assertEqual(t_fine, 126213)
 
 
-class test_improve_pressure_measurement(TestCase):
+class TestImprovePressureMeasurements(TestCase):
     def test(self):
         # normal case
         raw_pressure = 312272
@@ -172,7 +172,7 @@ class test_improve_pressure_measurement(TestCase):
         self.assertEqual(pressure, 0)
 
 
-class test_improve_humidity_measurement(TestCase):
+class TestHumidityMeasurements(TestCase):
     def test(self):
         raw_humidity = 24185
         dig_h = [75, 385, 0, 268, 50, 30]
@@ -181,22 +181,22 @@ class test_improve_humidity_measurement(TestCase):
         self.assertLess(abs(humidity - 41.07923074200165), 1e-4)
 
 
-class test_extract_values(TestCase):
+class TestExtractValues(TestCase):
     def test(self):
         data = [76, 59, 0, 129, 48, 0, 94, 121]
         dig_t = [28256, 26827, 50]
         dig_p = [37149, -10437, 3024, 9960, -214, -7, 9900, -10230, 4285]
         dig_h = [75, 385, 0, 268, 50, 30]
-        t, p, h = extract_values(data, dig_t, dig_p, dig_h)
+        temp, pres, hum = extract_values(data, dig_t, dig_p, dig_h)
 
-        self.assertLess(abs(t - 2465.0), 1e-4)
-        self.assertLess(abs(p - 96913.34719558517), 1e-4)
-        self.assertLess(abs(h - 41.07923395171727), 1e-4)
+        self.assertLess(abs(temp - 2465.0), 1e-4)
+        self.assertLess(abs(pres - 96913.34719558517), 1e-4)
+        self.assertLess(abs(hum - 41.07923395171727), 1e-4)
 
 
-class test_read_sensor(TestCase):
+class TestReadSensor(TestCase):
     def test(self):
-        fake_data_bus = FakeDataBus(0)
+        fake_data_bus = FakeDataBus(starting_point=0)
         correct_result = {'temperature': 24.65,
                           'pressure': 969.1056565652227,
                           'humidity': 41.07329061361983}
