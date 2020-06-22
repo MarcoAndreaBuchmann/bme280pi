@@ -1,4 +1,5 @@
-"""Detect the Raspberry Pi Version
+"""
+Detect the Raspberry Pi Version
 
 Contains the detect_raspberry_pi_version function, which
 detects the version of the Raspberry Pi used.
@@ -40,7 +41,10 @@ def get_list_of_revisions():
 
 def detect_raspberry_pi_version():
     """
-    Detect the Raspberry Pi Version
+    Detect the Raspberry Pi version based on CPU information
+    Note that if your model comes back as "Unknown", you may need
+    to add it to the dictionary in `get_list_of_revisions`. The
+    current list is up-to-date as of June 2020.
     """
     revision = "0000"
     known_revisions = get_list_of_revisions()
