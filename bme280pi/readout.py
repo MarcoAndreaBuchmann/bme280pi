@@ -1,11 +1,12 @@
 """
-
-Functions to read out the raw sensor data and processes it to obtain
-sensible values
+Functions to read out and interpret the raw sensor data
 
 This module is based on the bme280 script from MattHawkinsUK,
 https://bitbucket.org/MattHawkinsUK/rpispy-misc/raw/master/python/bme280.py
 
+Before changing parameters in the code, it is recommended to have a look at
+the data sheet available directly from Bosch:
+https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/
 """
 
 import time
@@ -13,23 +14,17 @@ from ctypes import c_short
 
 
 def get_short(data, index):
-    """
-    return two bytes from data as a signed 16-bit value
-    """
-    return c_short((data[index+1] << 8) + data[index]).value
+    """return two bytes from data as a signed 16-bit value"""
+    return c_short((data[index + 1] << 8) + data[index]).value
 
 
 def get_unsigned_short(data, index):
-    """
-    return two bytes from data as an unsigned 16-bit value
-    """
+    """return two bytes from data as an unsigned 16-bit value"""
     return (data[index+1] << 8) + data[index]
 
 
 def get_character(data, index):
-    """
-    return one byte from data as a signed char
-    """
+    """return one byte from data as a signed char"""
     result = data[index]
     if result > 127:
         result -= 256
@@ -37,25 +32,27 @@ def get_character(data, index):
 
 
 def get_unsigned_character(data, index):
-    """
-    return one byte from data as an unsigned char
-    """
+    """return one byte from data as an unsigned char"""
     result = data[index] & 0xFF
     return result
 
 
-def read_raw_sensor(bus, address, oversampling, mode, reg_data):
+def read_raw_sensor(bus, address, oversampling, reg_data):
     """
     Read out the raw sensor data
+    For an exmpalantion of the compensation parameter storage, naming, and
+    data type, see Table 16, page 25, of the data sheet.
+    For information about oversampling, see e.g. page 26.
+    For a memory map, see Table 18 on page 27.
     """
-    # Oversample setting for humidity register - page 26
-    reg_control = 0xF4
-    reg_control_hum = 0xF2
-    bus.write_byte_data(address, reg_control_hum, oversampling['humidity'])
+    control_register_address = 0xF4
+    control_register_address_humidity = 0xF2
+    bus.write_byte_data(address, control_register_address_humidity,
+                        oversampling['humidity'])
 
     control1 = oversampling['temperature'] << 5
-    control = control1 | oversampling['pressure'] << 2 | mode
-    bus.write_byte_data(address, reg_control, control)
+    control = control1 | oversampling['pressure'] << 2 | 1
+    bus.write_byte_data(address, control_register_address, control)
 
     # Read blocks of calibration data from EEPROM
     # See Page 22 data sheet
@@ -118,11 +115,31 @@ def process_calibration_data(cal):
 
 
 def extract_raw_values(data):
-    """
-    extract raw reading of temperature, pressure, and humidity
-    """
-    raw_pressure = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
-    raw_temperature = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)
+    """extract raw reading of temperature, pressure, and humidity"""
+    def shift_read(values, i, j, k):
+        """
+        Reads values from array and shifts them the following way:
+        - the first one is shifted to the left by 12 places
+        - the second value is shifted to the left by 4 places
+        - the third one is shifted to the right by 4 places
+        Then a bitwise "or" operation is performed.
+        Example: values = [1, 2, 3]
+        - the first entry (1) is shifted 12 places to the left:
+              000000000001 becomes 1000000000000
+        - the second entry (2) is shifted 4 places to the left:
+              000000000010 becomes 000000100000
+        - the third entry (3) is shifted 4 places to the right:
+              000000000011 becomes 000000000000
+        Finally, a bit-wise "or" is performed:
+              1000000000000 or
+              0000000100000 or
+              0000000000000 is
+              1000000100000
+        which, in decimal, is 4128.
+        """
+        return (values[i] << 12) | (values[j] << 4) | (values[k] >> 4)
+    raw_pressure = shift_read(data, 0, 1, 2)
+    raw_temperature = shift_read(data, 3, 4, 5)
     raw_humidity = (data[6] << 8) | data[7]
 
     return raw_pressure, raw_temperature, raw_humidity
@@ -131,6 +148,7 @@ def extract_raw_values(data):
 def improve_temperature_measurement(temp_raw, dig_t):
     """
     Refine the temperature measurement
+    Source: Bosch data sheet, Appendix A, "BME280_compensate_T_double"
     """
     var1 = ((((temp_raw >> 3) - (dig_t[0] << 1))) * (dig_t[1])) >> 11
     var2 = (((temp_raw >> 4) - (dig_t[0])) * ((temp_raw >> 4) - (dig_t[0])))
@@ -145,6 +163,7 @@ def improve_pressure_measurement(raw_pressure, dig_p, t_fine):
     Refine the pressure measurement and adjust it for the
     available temperature information, along with the pressure
     readout details
+    Source: Bosch data sheet, Appendix A, "BME280_compensate_P_double"
     """
     var1 = t_fine / 2.0 - 64000.0
     var2 = var1 * var1 * dig_p[5] / 32768.0
@@ -169,10 +188,11 @@ def improve_humidity_measurement(raw_humidity, dig_h, t_fine):
     """
     Refine humidity measurement by using the available temperature
     information, along with the humidity readout details
+    Source: Bosch data sheet, Appendix A, "BME280_compensate_H_double"
     """
-    humidity = t_fine - 76800.0
-    term1 = raw_humidity - (dig_h[3] * 64.0 + dig_h[4] / 16384.0 * humidity)
-    term2a = humidity * (1.0 + dig_h[2] / 67108864.0 * humidity)
+    base_value = t_fine - 76800.0
+    term1 = raw_humidity - (dig_h[3] * 64.0 + dig_h[4] / 16384.0 * base_value)
+    term2a = base_value * (1.0 + dig_h[2] / 67108864.0 * base_value)
     term2 = dig_h[1] / 65536.0 * (1.0 + dig_h[5] / 67108864.0 * term2a)
     humidity = term1 * term2
     humidity = humidity * (1.0 - dig_h[0] * humidity / 524288.0)
@@ -195,22 +215,45 @@ def extract_values(data, dig_t, dig_p, dig_h):
     return temperature, pressure, humidity
 
 
-def read_sensor(bus, address, reg_data=0xF7, mode=1,
-                oversampling={'temperature': 2,
-                              'pressure': 2,
-                              'humidity': 2}):
+def read_sensor(bus, address, reg_data=0xF7,
+                oversampling=None):
     """
-    Read out the data from the sensor
+    Read measurements from sensor
 
     See the data sheet for more information, e.g. p27 for oversampling
     settings, App. B for measurement time, Sec. 4 for data readout, etc.
 
-    This module is based on the bme280 script from MattHawkinsUK.
+    If no oversampling is defined, the code defaults to the standard 2/2/2
+    for temperature/humidity/pressure. If you wish to specify your own
+    oversampling parameters, please pass a dictionary to `oversampling` with
+    the keys 'temperature', 'pressure', and 'humidity'.
+
+    This module is based on the bme280 script from MattHawkinsUK, which in
+    turn is based on the data sheet from Bosch (see references below).
+
+    References:
+    https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/
     """
+
+    if oversampling is None:
+        oversampling = {'temperature': 2,
+                        'pressure': 2,
+                        'humidity': 2}
+
+    if not isinstance(oversampling, dict):
+        raise TypeError("oversampling must be a dictionary")
+
+    for keyword in ['temperature', 'pressure', 'humidity']:
+        if keyword not in oversampling:
+            raise KeyError("oversampling does not contain all necessary" +
+                           "keys: " + keyword + " is missing!")
+    for keyword in oversampling:
+        if keyword not in ['temperature', 'pressure', 'humidity']:
+            raise KeyError("key " + keyword + " in oversampling is unknown")
+
     cal, data = read_raw_sensor(bus=bus,
                                 address=address,
                                 oversampling=oversampling,
-                                mode=mode,
                                 reg_data=reg_data)
 
     dig_t, dig_p, dig_h = process_calibration_data(cal)
