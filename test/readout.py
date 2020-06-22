@@ -222,10 +222,3 @@ class TestReadSensor(TestCase):
             _ = read_sensor(bus=fake_data_bus,
                             address="fake_address",
                             oversampling={'something': 2})
-        with self.assertRaises(KeyError):
-            _ = read_sensor(bus=fake_data_bus,
-                            address="fake_address",
-                            oversampling={'pressure': 2,
-                                          'temperature': 2,
-                                          'humidity': 2,
-                                          'wokeness': 10})
