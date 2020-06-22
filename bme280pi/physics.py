@@ -14,7 +14,14 @@ import math
 
 
 def validate_pressure(pressure):
-    """Makes sure pressure is valid"""
+    """
+    Makes sure pressure is valid:
+    - needs to be positive
+    - needs to be smaller than 1100 (largest value ever was 1083)
+
+    Input:
+    - pressure (in hPa)
+    """
     if not isinstance(pressure, (float, int)):
         raise TypeError("Pressure must be int or float")
 
@@ -23,7 +30,15 @@ def validate_pressure(pressure):
 
 
 def validate_temperature(temperature):
-    """Makes sure pressure is valid"""
+    """
+    Makes sure pressure is valid:
+    - needs to be smaller than 100 degrees (humidity calculations
+      don't make much sense above this temperature)
+    - needs to be larger than -100 (same reason)
+
+    Input:
+    - temperature (in C)
+    """
     if not isinstance(temperature, (float, int)):
         raise TypeError("Temperature must be int or float")
 
@@ -32,7 +47,14 @@ def validate_temperature(temperature):
 
 
 def validate_humidity(rel_humidity):
-    """Makes sure relative humidity is valid"""
+    """
+    Makes sure relative humidity is valid
+    - relative humidity must be below 100%
+    - relative humidity must be above 0%
+
+    Input:
+    - humidity (in %)
+    """
     if not isinstance(rel_humidity, (float, int)):
         raise TypeError("Relative Humidity must be int or float")
     if rel_humidity < 0 or rel_humidity > 100:
