@@ -15,6 +15,10 @@ from bme280pi.raspberry_pi_version import detect_raspberry_pi_version
 from bme280pi.readout import read_sensor
 
 
+class I2CException(Exception):
+    pass
+
+
 class Sensor:
     """
     Sensor class
@@ -126,13 +130,23 @@ class Sensor:
         the first revisions needs to be initialized slightly differently.
         """
         bus = None
+        argument = 1
         if detect_raspberry_pi_version() in ['Model B R1',
                                              'Model A',
                                              'Model B+',
                                              'Model A+']:
-            bus = smbus.SMBus(0)
-        else:
-            bus = smbus.SMBus(1)
+            argument = 0
+
+        try:
+            bus = smbus.SMBus(argument)
+        except FileNotFoundError:
+            raise I2CException("SMBus raised a FileNotFoundError; this is " +
+                               "usually due to the i2c interface being " +
+                               "unconfigured. Please run 'sudo raspi-config'" +
+                               " and select Interfacing Options -> I2C, " +
+                               "choose and hit Enter, and then reboot. I2C " +
+                               "should then be configured, and you should " +
+                               "no longer see this exception")
 
         return bus
 

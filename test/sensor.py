@@ -1,7 +1,7 @@
 import io
 from unittest import TestCase, mock
 
-from bme280pi.sensor import Sensor
+from bme280pi.sensor import Sensor, I2CException
 
 
 class FakeSMBus:
@@ -79,13 +79,22 @@ class FakeDataBus:
         return self.data[self.i_read]
 
 
+class FileNotFoundSMBus:
+    def __init__(self, bus_address):
+        """
+        This fake bus class raises a FileNotFoundError, because that's what
+        SMBus can do in case I2C is not configured.
+        """
+        raise FileNotFoundError("No such file or directory")
+
+
 def initialize_fake_bus(*args, **kwargs):
     return FakeDataBus()
 
 
 class TestSensor(TestCase):
+    @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
     def test_get_data(self):
-        Sensor._initialize_bus = initialize_fake_bus
         sensor = Sensor()
         self.assertEqual(sensor.chip_id, "fake_chip_id")
         self.assertEqual(sensor.chip_version, "fake_version")
@@ -95,16 +104,19 @@ class TestSensor(TestCase):
         self.assertLess(abs(data['pressure'] - 969.1056565652227), 1e-4)
         self.assertLess(abs(data['humidity'] - 41.07329061361983), 1e-4)
 
+    @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
     def test_get_temperature(self):
         sensor = Sensor()
         temperature = sensor.get_temperature()
         self.assertLess(abs(temperature - 24.65), 1e-4)
 
+    @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
     def test_get_pressure(self):
         sensor = Sensor()
         pressure = sensor.get_pressure()
         self.assertLess(abs(pressure - 969.1056565652227), 1e-4)
 
+    @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
     def test_get_humidity(self):
         sensor = Sensor()
         humidity = sensor.get_humidity()
@@ -114,10 +126,15 @@ class TestSensor(TestCase):
         humidity = sensor.get_humidity(relative=False)
         self.assertLess(abs(humidity - 0.009291279797753835), 1e-4)
 
+    def test_unconfigured_i2c(self):
+        with mock.patch('smbus.SMBus', FileNotFoundSMBus):
+            with self.assertRaises(I2CException):
+                _ = Sensor()
+
 
 class TestPrintSensor(TestCase):
+    @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
     def test(self):
-        Sensor._initialize_bus = initialize_fake_bus
         sensor = Sensor()
         self.assertEqual(sensor.chip_id, "fake_chip_id")
         self.assertEqual(sensor.chip_version, "fake_version")
@@ -130,6 +147,7 @@ class TestPrintSensor(TestCase):
             sensor.print_data()
             self.assertEqual(fake_out.getvalue(), ref_message)
 
+    @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
     def test_print_with_absolute_humidity(self):
         sensor = Sensor()
         ref_message = "Temperature:  24.65 C\n" + \
