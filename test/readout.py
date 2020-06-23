@@ -95,12 +95,16 @@ class TestReadRawSensor(TestCase):
             self.assertEqual(bus.commands[i][4], correct_value[4])
 
 
+def get_reference_calibration_data():
+    return ([96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11, 232, 38,
+             42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
+            [75],
+            [129, 1, 0, 16, 44, 3, 30])
+
+
 class TestGetModified(TestCase):
     def test(self):
-        cals = ([96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11, 232, 38,
-                 42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
-                [75],
-                [129, 1, 0, 16, 44, 3, 30])
+        cals = get_reference_calibration_data()
 
         self.assertEqual(get_modified(cals, 3, get_character), 268)
         self.assertEqual(get_modified(cals, 3, get_unsigned_character), 268)
@@ -111,10 +115,7 @@ class TestGetModified(TestCase):
 
 class TestProcessCalibration(TestCase):
     def test(self):
-        cals = ([96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11, 232, 38,
-                 42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
-                [75],
-                [129, 1, 0, 16, 44, 3, 30])
+        cals = get_reference_calibration_data()
 
         correct_dig_t = [28256, 26827, 50]
         correct_dig_p = [37149, -10437, 3024, 9960, -214, -7, 9900, -10230,
