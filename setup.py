@@ -1,6 +1,10 @@
+#!/usr/bin/env python3
+""" bme280pi: the BME280 Sensor Reader for Raspberry Pi
+This package provides:
+- an intuitive way to access the Bosch BME280 sensor
+- the ability to convert measurements into different units
 """
-Setup script for bme280pi
-"""
+DOCLINES = (__doc__ or '').split("\n")
 
 import sys
 
@@ -15,12 +19,17 @@ if sys.version_info.major < 3 or sys.version_info.minor < 5:
 setup(name='bme280pi',
       version='1.0',
       license='MIT',
-      description='Package to read out BME280 sensor on Raspberry Pi',
+      description = DOCLINES[0],
+      long_description = "\n".join(DOCLINES[2:]),
       author='Marco-Andrea Buchmann',
       url='https://www.github.com/MarcoAndreaBuchmann/bme280pi',
       download_url = 'https://github.com/MarcoAndreaBuchmann/bme280pi/archive/v1.0.tar.gz',
+      project_urls={"Bug Tracker": "https://github.com/MarcoAndreaBuchmann/bme280pi/issues",
+                    "Source Code": "https://github.com/MarcoAndreaBuchmann/bme280pi"},
       keywords=['Raspberry', 'Pi', 'Raspberry Pi', 'BME280', 'sensor',
                 'readout', 'temperature', 'pressure', 'humidity'],
+      platforms = ["Linux"],
+      python_requires=">=3.5",
       packages=find_packages(),
       tests_require=["pytest"],
       install_requires=['smbus'],
