@@ -89,6 +89,11 @@ plt.title("Relative Humidity (%)")
 plt.savefig("Measurements.png")
 ```
 
+### Potential issues
+
+If you see a `FileNotFoundError` being raised by SMBus, then you may not have properly configured I2C.
+Have a look at the instructions above to enable to I2C interface, and make sure you reboot.
+
 ### References
 
 [Bosch BME280 Data Sheet](https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/)
