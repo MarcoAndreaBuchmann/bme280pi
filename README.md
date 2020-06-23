@@ -1,6 +1,7 @@
 [![Build Status](https://github.com/MarcoAndreaBuchmann/bme280pi/workflows/Tests/badge.svg)](https://github.com/MarcoAndreaBuchmann/bme280pi/actions?query=workflow%3ATests)
 [![Coverage](http://fermion.ch/bme280pi_badges/coverage.svg)](https://github.com/MarcoAndreaBuchmann/bme280pi/actions?query=workflow%3ACoverage)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/fb51e4dac5ee4e4bbf55c6615aae3597)](https://app.codacy.com/manual/MarcoAndreaBuchmann/bme280pi?utm_source=github.com&utm_medium=referral&utm_content=MarcoAndreaBuchmann/bme280pi&utm_campaign=Badge_Grade_Dashboard)
+[![Maintainability](https://api.codeclimate.com/v1/badges/74442c7128065652d6da/maintainability)](https://codeclimate.com/github/MarcoAndreaBuchmann/bme280pi/maintainability)
 
 # bme280pi: the BME280 Sensor Reader for Raspberry Pi
 
@@ -27,7 +28,7 @@ You are now ready to connect the BME280 sensor.
  
 ### Connect the BME280 sensor
 
-![ModuleSetup](http://gilles.thebault.free.fr/IMG/jpg/raspi_bme280_bb.jpg)
+![ModuleSetup](https://i.imgur.com/8i3sSlC.png)
 
 ### Install This Module
 
