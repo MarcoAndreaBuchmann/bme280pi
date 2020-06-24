@@ -21,13 +21,14 @@ if sys.version_info.major < 3 or sys.version_info.minor < 5:
 
 
 setup(name='bme280pi',
-      version='1.0.1',
+      version='1.0.2',
       license='MIT',
       description="bme280pi: the BME280 Sensor Reader for Raspberry Pi",
       long_description=README,
+      long_description_content_type="text/markdown",
       author='Marco-Andrea Buchmann',
       url='https://www.github.com/MarcoAndreaBuchmann/bme280pi',
-      download_url='https://github.com/MarcoAndreaBuchmann/bme280pi/archive/v1.0.1.tar.gz',
+      download_url='https://github.com/MarcoAndreaBuchmann/bme280pi/archive/v1.0.2.tar.gz',
       project_urls={"Bug Tracker": "https://github.com/MarcoAndreaBuchmann/bme280pi/issues",
                     "Source Code": "https://github.com/MarcoAndreaBuchmann/bme280pi"},
       keywords=['Raspberry', 'Pi', 'Raspberry Pi', 'BME280', 'sensor',
