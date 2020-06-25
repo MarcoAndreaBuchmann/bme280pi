@@ -1,7 +1,8 @@
 [![Build Status](https://github.com/MarcoAndreaBuchmann/bme280pi/workflows/Tests/badge.svg)](https://github.com/MarcoAndreaBuchmann/bme280pi/actions?query=workflow%3ATests)
 [![Coverage](http://fermion.ch/bme280pi_badges/coverage.svg)](https://github.com/MarcoAndreaBuchmann/bme280pi/actions?query=workflow%3ACoverage)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/fb51e4dac5ee4e4bbf55c6615aae3597)](https://app.codacy.com/manual/MarcoAndreaBuchmann/bme280pi?utm_source=github.com&utm_medium=referral&utm_content=MarcoAndreaBuchmann/bme280pi&utm_campaign=Badge_Grade_Dashboard)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/fb51e4dac5ee4e4bbf55c6615aae3597)](https://app.codacy.com/manual/MarcoAndreaBuchmann/bme280pi/dashboard)
 [![Maintainability](https://api.codeclimate.com/v1/badges/74442c7128065652d6da/maintainability)](https://codeclimate.com/github/MarcoAndreaBuchmann/bme280pi/maintainability)
+[![pypi](https://img.shields.io/pypi/v/bme280pi.svg)](https://pypi.org/project/bme280pi/)
 
 # bme280pi: the BME280 Sensor Reader for Raspberry Pi
 
@@ -32,7 +33,20 @@ You are now ready to connect the BME280 sensor.
 
 ### Install This Module
 
-You can then install this module by running `python setup.py install`
+### Installing With pip (Recommended)
+
+You can then install this module by running `pip install bme280pi`
+
+### Installing From Source
+
+If you want the latest version, you can check out the sources and install the
+package yourself:
+
+```bash
+git clone https://github.com/MarcoAndreaBuchmann/bme280pi.git
+cd bme280pi
+python setup.py install
+```
 
 ### Using it in your script
 
@@ -90,10 +104,10 @@ plt.title("Relative Humidity (%)")
 plt.savefig("Measurements.png")
 ```
 
-### Potential issues
+### Reporting Issues
 
-If you see a `FileNotFoundError` being raised by SMBus, then you may not have properly configured I2C.
-Have a look at the instructions above to enable to I2C interface, and make sure you reboot.
+Please feel free to report any issues you encounter at the
+[issue tracker](https://github.com/MarcoAndreaBuchmann/bme280pi/issues).
 
 ### References
 
