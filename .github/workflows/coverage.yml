@@ -13,29 +13,24 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.8
+    - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest coverage anybadge
+        pip install pytest coverage
         python setup.py develop
+    - name: Install CodeClimate Test Reporter
+      run: |
+        curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+        chmod +x ./cc-test-reporter
     - name: Run coverage
       env:
-        EXAMPLE_SECRET: ${{ secrets.EXAMPLE_SECRET }}
-        FERMI_KEY: ${{ secrets.FERMI_KEY }}
-        FERMI_DESTINATION: ${{ secrets.FERMI_DESTINATION }}
+        CODE_CLIMATE_SECRET: ${{ secrets.CODE_CLIMATE_SECRET }}
       run: |
+        ./cc-test-reporter before-build
         coverage run --include=bme280pi/* -m pytest test/*
-        coverage report
-        coverage=`coverage report | grep TOTAL | awk '{ print $4 }' | sed 's/%//'`
-        echo "Determined coverage to be: $coverage"
-        anybadge --value=$coverage --file=coverage.svg coverage
-        the_path=fileToUpload=@`pwd`/coverage.svg
-        curl -F "secret=${FERMI_KEY}" -F $the_path ${FERMI_DESTINATION}
-    - uses: actions/upload-artifact@v2
-      with:
-        name: coverage.svg
-        path: coverage.svg
+        coverage xml
+        ./cc-test-reporter after-build --exit-code $? --coverage-input-type coverage.py -r ${CODE_CLIMATE_SECRET}
