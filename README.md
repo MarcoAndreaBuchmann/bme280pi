@@ -1,5 +1,5 @@
 [![Build Status](https://github.com/MarcoAndreaBuchmann/bme280pi/workflows/Tests/badge.svg)](https://github.com/MarcoAndreaBuchmann/bme280pi/actions?query=workflow%3ATests)
-[![Coverage](http://fermion.ch/bme280pi_badges/coverage.svg)](https://github.com/MarcoAndreaBuchmann/bme280pi/actions?query=workflow%3ACoverage)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/74442c7128065652d6da/test_coverage)](https://codeclimate.com/github/MarcoAndreaBuchmann/bme280pi/test_coverage)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/fb51e4dac5ee4e4bbf55c6615aae3597)](https://app.codacy.com/manual/MarcoAndreaBuchmann/bme280pi/dashboard)
 [![Maintainability](https://api.codeclimate.com/v1/badges/74442c7128065652d6da/maintainability)](https://codeclimate.com/github/MarcoAndreaBuchmann/bme280pi/maintainability)
 [![pypi](https://img.shields.io/pypi/v/bme280pi.svg)](https://pypi.org/project/bme280pi/)
