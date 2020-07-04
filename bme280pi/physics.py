@@ -8,6 +8,7 @@ and to round numbers to a n significant digits.
 
 source for formulae:
 https://planetcalc.com/2167/
+https://keisan.casio.com/keisan/image/Convertpressure.pdf
 """
 
 import math
@@ -59,6 +60,23 @@ def validate_humidity(rel_humidity):
         raise TypeError("Relative Humidity must be int or float")
     if rel_humidity < 0 or rel_humidity > 100:
         raise ValueError("Rel. humidity must be between 0 and 100")
+
+
+def validate_height_above_sea_level(height_above_sea_level):
+    """
+    Validates height above sea level:
+    - needs to be positive
+    - needs to be smaller than 11000 (limit of validity of conversion formula)
+
+    Input:
+    - height above sea level (in m)
+    """
+    if not isinstance(height_above_sea_level, (float, int)):
+        raise TypeError("Height above sea level must be int or float")
+
+    if height_above_sea_level <= 0 or height_above_sea_level > 11000:
+        raise ValueError("Height above sea level must be between zero " +
+                         "and 11000")
 
 
 def pressure_function(pressure):
@@ -173,6 +191,49 @@ def convert_temperature(temperature, unit='C'):
         return temperature + 273.15
 
     raise Exception("Unknown temperature unit: " + unit)
+
+
+def pressure_at_sea_level(pressure, temperature, height_above_sea_level):
+    """
+    Convert pressure to pressure at sea level
+
+    This function uses a simple formula to convert the observed pressure
+    to the equivalent pressure at sea level. The pressure at sea level
+    is a commonly quoted quantity, often referred to as QFF whereas the
+    "local" observed pressure is referred to as QFE.
+
+    :math:
+        e = -\\frac{g}{R_d \\gamma}
+        f = \\left(1 + \\frac{\\gamma \\cdot h}{T - \\gamma\\cdot h}\\right)
+        p = p_0 * f ^ e
+    where `e` is the exponent, `f` is the correction factor, `gamma` is the
+    derivative `dT/dz` (which is approx. -0.0065 K/m), g is the gravitational
+    acceleration in free fall (9.80665 m/s^2), `T` is the temperature,
+    `R_d` is the specific gas constant of dry air (287 J/kg/K), `p` is the
+    observed pressure, and `p_0` is the pressure at sea level. All calculations
+    are in SI units.
+
+    Inputs:
+        - pressure (in hPa)
+        - temperature (in C)
+        - height above sea level (in meters)
+    Output:
+        - equivalent pressure at sea level (in hPa)
+    """
+    validate_pressure(pressure)
+    validate_temperature(temperature)
+    validate_height_above_sea_level(height_above_sea_level)
+
+    gamma = -0.0065
+    g = 9.80665
+    r_d = 287
+    h = height_above_sea_level
+    temp = convert_temperature(temperature, unit='K')
+
+    e = - g / (r_d * gamma)
+    f = 1 + gamma * h / (temp - gamma * h)
+
+    return pressure / pow(f, e)
 
 
 def round_to_n_significant_digits(value, n_digits):
