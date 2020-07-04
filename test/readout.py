@@ -212,14 +212,14 @@ class TestReadSensor(TestCase):
     def test_bad_inputs(self):
         fake_data_bus = FakeDataBus(0)
         with self.assertRaises(TypeError):
-            _ = read_sensor(bus=fake_data_bus,
-                            address="fake_address",
-                            oversampling="some_string")
+            read_sensor(bus=fake_data_bus,
+                        address="fake_address",
+                        oversampling="some_string")
         with self.assertRaises(TypeError):
-            _ = read_sensor(bus=fake_data_bus,
-                            address="fake_address",
-                            oversampling=2)
+            read_sensor(bus=fake_data_bus,
+                        address="fake_address",
+                        oversampling=2)
         with self.assertRaises(KeyError):
-            _ = read_sensor(bus=fake_data_bus,
-                            address="fake_address",
-                            oversampling={'something': 2})
+            read_sensor(bus=fake_data_bus,
+                        address="fake_address",
+                        oversampling={'something': 2})
