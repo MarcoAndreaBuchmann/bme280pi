@@ -19,6 +19,9 @@ if sys.version_info.major < 3 or sys.version_info.minor < 5:
     print("Package is for python 3.5 or later, please upgrade")
     sys.exit(1)
 
+github_url = "https://github.com/MarcoAndreaBuchmann/bme280pi/"
+download_url = github_url + "archive/v1.0.2.tar.gz"
+
 
 setup(name='bme280pi',
       version='1.0.2',
@@ -28,9 +31,9 @@ setup(name='bme280pi',
       long_description_content_type="text/markdown",
       author='Marco-Andrea Buchmann',
       url='https://www.github.com/MarcoAndreaBuchmann/bme280pi',
-      download_url='https://github.com/MarcoAndreaBuchmann/bme280pi/archive/v1.0.2.tar.gz',
-      project_urls={"Bug Tracker": "https://github.com/MarcoAndreaBuchmann/bme280pi/issues",
-                    "Source Code": "https://github.com/MarcoAndreaBuchmann/bme280pi"},
+      download_url=download_url,
+      project_urls={"Bug Tracker": github_url + "issues",
+                    "Source Code": github_url},
       keywords=['Raspberry', 'Pi', 'Raspberry Pi', 'BME280', 'sensor',
                 'readout', 'temperature', 'pressure', 'humidity'],
       platforms=["Linux"],
