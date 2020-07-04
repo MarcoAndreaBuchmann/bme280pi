@@ -117,6 +117,20 @@ class TestSensor(TestCase):
         self.assertLess(abs(pressure - 969.1056565652227), 1e-4)
 
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
+    def test_get_pressure_above_sea_level(self):
+        sensor = Sensor()
+        pressure = sensor.get_pressure(height_above_sea_level=440,
+                                       as_pressure_at_sea_level=True)
+        self.assertLess(abs(pressure - 1019.0420210), 1e-4)
+
+    @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
+    def test_get_pressure_without_height_above_sea_level(self):
+        sensor = Sensor()
+        with self.assertRaises(ValueError):
+            sensor.get_pressure(height_above_sea_level=None,
+                                as_pressure_at_sea_level=True)
+
+    @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
     def test_get_humidity(self):
         sensor = Sensor()
         humidity = sensor.get_humidity()
@@ -129,7 +143,7 @@ class TestSensor(TestCase):
     def test_unconfigured_i2c(self):
         with mock.patch('smbus.SMBus', FileNotFoundSMBus):
             with self.assertRaises(I2CException):
-                _ = Sensor()
+                Sensor()
 
 
 class TestPrintSensor(TestCase):
