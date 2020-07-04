@@ -10,7 +10,7 @@ get all at once with `get_data`.
 import smbus
 
 from bme280pi.physics import calculate_abs_humidity, convert_pressure, \
-    convert_temperature, round_to_n_significant_digits
+    convert_temperature, round_to_n_significant_digits, pressure_at_sea_level
 from bme280pi.raspberry_pi_version import detect_raspberry_pi_version
 from bme280pi.readout import read_sensor
 
@@ -77,14 +77,28 @@ class Sensor:
                                       temperature=data['temperature'],
                                       rel_humidity=data['humidity'])
 
-    def get_pressure(self, unit='hPa'):
+    def get_pressure(self, unit='hPa', height_above_sea_level=None,
+                     as_pressure_at_sea_level=False):
         """
         Fetch the pressure from the sensor.
         The value can be returned in hPa (`unit='hPa'), Pa (`unit='Pa'),
         kPa (`unit='kPa'`), atm (`unit='atm'`), or mm Hg (`unit='mmHg'`).
+
+        For meteorological applications, it can be useful to conver the
+        pressure into its equivalent value at sea level. If you prefer this
+        convention, set `as_pressure_at_sea_level=True`.
+        In that case, you need to specify the height above sea level as well.
         """
         data = self.get_data()
 
+        if as_pressure_at_sea_level:
+            if height_above_sea_level is None:
+                raise ValueError("You need to indicate the height above sea " +
+                                 "level to get the equivalent value at sea " +
+                                 "level.")
+            data['pressure'] = pressure_at_sea_level(data['pressure'],
+                                                     data['temperature'],
+                                                     height_above_sea_level)
         return convert_pressure(data['pressure'], unit=unit)
 
     def get_data(self):
