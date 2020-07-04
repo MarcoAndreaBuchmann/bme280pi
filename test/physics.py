@@ -1,10 +1,12 @@
 from unittest import TestCase
 
 from bme280pi.physics import (validate_pressure, validate_temperature,
+                              validate_height_above_sea_level,
                               validate_humidity, pressure_function,
                               calculate_abs_humidity, convert_pressure,
                               convert_temperature,
-                              round_to_n_significant_digits)
+                              round_to_n_significant_digits,
+                              pressure_at_sea_level)
 
 
 class TestValidation(TestCase):
@@ -31,6 +33,14 @@ class TestValidation(TestCase):
             validate_humidity(-1)
         with self.assertRaises(ValueError):
             validate_humidity(123)
+
+    def test_height_above_sea_level(self):
+        with self.assertRaises(TypeError):
+            validate_height_above_sea_level("string_input")
+        with self.assertRaises(ValueError):
+            validate_height_above_sea_level(-1)
+        with self.assertRaises(ValueError):
+            validate_height_above_sea_level(12345)
 
 
 class TestPressureFunction(TestCase):
@@ -213,3 +223,37 @@ class TestRoundToNSignificantDigits(TestCase):
             round_to_n_significant_digits(2, -1)
         with self.assertRaises(TypeError):
             round_to_n_significant_digits(2, 1.234)
+
+
+class TestPressureAtSeaLevel(TestCase):
+    def test(self):
+        p = pressure_at_sea_level(pressure=972,
+                                  temperature=25,
+                                  height_above_sea_level=440)
+        self.assertLess(abs(p - 1022.03), 0.01)
+
+    def test_exceptions(self):
+        with self.assertRaises(TypeError):
+            pressure_at_sea_level(pressure="hello",
+                                  temperature=25,
+                                  height_above_sea_level=440)
+        with self.assertRaises(TypeError):
+            pressure_at_sea_level(pressure=972,
+                                  temperature="string",
+                                  height_above_sea_level=440)
+        with self.assertRaises(TypeError):
+            pressure_at_sea_level(pressure=972,
+                                  temperature=25,
+                                  height_above_sea_level="string")
+        with self.assertRaises(ValueError):
+            pressure_at_sea_level(pressure=1234,
+                                  temperature=25,
+                                  height_above_sea_level=440)
+        with self.assertRaises(ValueError):
+            pressure_at_sea_level(pressure=972,
+                                  temperature=123,
+                                  height_above_sea_level=440)
+        with self.assertRaises(ValueError):
+            pressure_at_sea_level(pressure=972,
+                                  temperature=25,
+                                  height_above_sea_level=11111)
