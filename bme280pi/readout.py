@@ -1,5 +1,4 @@
-"""
-Functions to read out and interpret the raw sensor data
+"""Functions to read out and interpret the raw sensor data.
 
 This module is based on the bme280 script from MattHawkinsUK,
 https://bitbucket.org/MattHawkinsUK/rpispy-misc/raw/master/python/bme280.py
@@ -38,9 +37,9 @@ def get_unsigned_character(data, index):
 
 
 def read_raw_sensor(bus, address, oversampling, reg_data):
-    """
-    Read out the raw sensor data
-    For an exmpalantion of the compensation parameter storage, naming, and
+    """Read raw sensor data.
+
+    For an explanation of the parameter storage, naming, and
     data type, see Table 16, page 25, of the data sheet.
     For information about oversampling, see e.g. page 26.
     For a memory map, see Table 18 on page 27.
@@ -74,9 +73,10 @@ def read_raw_sensor(bus, address, oversampling, reg_data):
 
 
 def get_modified(cal, i, function, shift=False):
-    """
-    Extract information from block, and shifts it
-    if necessary
+    """Obtain and modify data from block.
+
+    Extracts information from block, and shifts it
+    if necessary.
     """
     dig = get_character(cal[2], i)
     dig = (dig << 24) >> 20
@@ -86,8 +86,9 @@ def get_modified(cal, i, function, shift=False):
 
 
 def process_calibration_data(cal):
-    """
-    Process calibration data to extract the information pertaining
+    """Process calibration data.
+
+    Processes calibration data to extract the information pertaining
     to temperature, pressure, and humidity
     """
     dig_t = [get_unsigned_short(cal[0], 0),
@@ -117,7 +118,8 @@ def process_calibration_data(cal):
 def extract_raw_values(data):
     """Extract raw reading of temperature, pressure, and humidity."""
     def shift_read(values, i, j, k):
-        """
+        """Read raw data from array and shift it.
+
         Reads values from array and shifts them the following way:
         - the first one is shifted to the left by 12 places
         - the second value is shifted to the left by 4 places
@@ -146,9 +148,13 @@ def extract_raw_values(data):
 
 
 def improve_temperature_measurement(temp_raw, dig_t):
-    """
-    Refine the temperature measurement
-    Source: Bosch data sheet, Appendix A, "BME280_compensate_T_double"
+    """Refine the temperature measurement.
+
+    Adapts the raw temperature measurement according to a formula specified
+    in the Bosch data sheet.
+
+    Reference:
+    Bosch data sheet, Appendix A, "BME280_compensate_T_double"
     """
     var1 = ((((temp_raw >> 3) - (dig_t[0] << 1))) * (dig_t[1])) >> 11
     var2 = (((temp_raw >> 4) - (dig_t[0])) * ((temp_raw >> 4) - (dig_t[0])))
@@ -159,11 +165,14 @@ def improve_temperature_measurement(temp_raw, dig_t):
 
 
 def improve_pressure_measurement(raw_pressure, dig_p, t_fine):
-    """
-    Refine the pressure measurement and adjust it for the
-    available temperature information, along with the pressure
-    readout details
-    Source: Bosch data sheet, Appendix A, "BME280_compensate_P_double"
+    """Refine the pressure measurement.
+
+    Adapts the pressure measurement according to the formula specified in
+    the Bosch data sheet, and adjust it for the available temperature
+    measurement, along with the pressure readout details.
+
+    Reference:
+    Bosch data sheet, Appendix A, "BME280_compensate_P_double"
     """
     var1 = t_fine / 2.0 - 64000.0
     var2 = var1 * var1 * dig_p[5] / 32768.0
@@ -185,10 +194,13 @@ def improve_pressure_measurement(raw_pressure, dig_p, t_fine):
 
 
 def improve_humidity_measurement(raw_humidity, dig_h, t_fine):
-    """
-    Refine humidity measurement by using the available temperature
-    information, along with the humidity readout details
-    Source: Bosch data sheet, Appendix A, "BME280_compensate_H_double"
+    """Refine the humidity measurement.
+
+    Adapts the humidity measurement by using the available temperature
+    information, along with the humidity readout details.
+
+    Reference:
+    Bosch data sheet, Appendix A, "BME280_compensate_H_double"
     """
     base_value = t_fine - 76800.0
     term1 = raw_humidity - (dig_h[3] * 64.0 + dig_h[4] / 16384.0 * base_value)
@@ -201,8 +213,9 @@ def improve_humidity_measurement(raw_humidity, dig_h, t_fine):
 
 
 def extract_values(data, dig_t, dig_p, dig_h):
-    """
-    Extract temperature, pressure, and humidity from raw data and
+    """Extract values from raw data.
+
+    Extracts temperature, pressure, and humidity from raw data and
     correct it to provide the best measurement
     """
     raw_pressure, raw_temperature, raw_humidity = extract_raw_values(data)
@@ -216,12 +229,11 @@ def extract_values(data, dig_t, dig_p, dig_h):
 
 
 def validate_oversampling(oversampling=None):
-    """
-    Validates the `oversampling` parameter
+    """Validate the `oversampling` parameter.
 
-    This parameter can either be None (to use the default values) or
-    it can be a dictionary containing the three keys "temperature",
-    "humidity", and "pressure".
+    Checks whether the parameter is valid. This parameter can either be None
+    (to use the default values) or it can be a dictionary containing the
+    three keys "temperature", "humidity", and "pressure".
 
     Inputs:
         - oversampling: either None or a dictionary
@@ -239,9 +251,11 @@ def validate_oversampling(oversampling=None):
 
 def read_sensor(bus, address, reg_data=0xF7,
                 oversampling=None):
-    """
-    Read measurements from sensor
+    """Read measurements from sensor.
 
+    Reads the raw information from the sensor and converts it into a
+    readable format. The function returns a dictionary with the measurements,
+    with the three keys "temperature",
     See the data sheet for more information, e.g. p27 for oversampling
     settings, App. B for measurement time, Sec. 4 for data readout, etc.
 
@@ -256,7 +270,6 @@ def read_sensor(bus, address, reg_data=0xF7,
     References:
     https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/
     """
-
     oversampling = validate_oversampling(oversampling=oversampling)
 
     cal, data = read_raw_sensor(bus=bus,

@@ -1,5 +1,4 @@
-"""
-Sensor class module
+"""Sensor class module.
 
 You can use the Sensor class to access the BME280 sensor,
 and obtain information through `get_temperature`,
@@ -16,12 +15,17 @@ from bme280pi.readout import read_sensor
 
 
 class I2CException(Exception):
+    """Exception related to I2C (Inter-Integrated Circuit).
+
+    Exception that is raised when an issue is encountered in the I2C
+    section of the code. This is due to the I2C interface not being
+    properly configured.
+    """
     pass
 
 
 class Sensor:
-    """
-    Sensor class
+    """Sensor class.
 
     This class initializes the BME280 sensor, and offers an intuitive
     interface to access the sensor information. You can read out the
@@ -41,8 +45,9 @@ class Sensor:
     >>> sensor.get_pressure(unit='mmHg')
     """
     def __init__(self):
-        """
-        Initialize the sensor class:
+        """Initialize the sensor class.
+
+        Carries out the following steps to initialize the class:
         - detect the Raspberry Pi version
         - initialize the bus
         - store information about the sensor in the class
@@ -53,8 +58,10 @@ class Sensor:
         self.chip_id, self.chip_version = self._get_info_about_sensor()
 
     def get_temperature(self, unit='C'):
-        """
-        Fetch the temperature from the sensor.
+        """Get a temperature reading.
+
+        Fetches a temperature reading from the sensor and returns it in the
+        user-specified temperature unit.
         The value can be returned in degrees Celsius (`unit='C'`),
         in degrees Fahrenheit (`unit='K'`), or in Kelvin (`unit='K'`).
         """
@@ -62,11 +69,11 @@ class Sensor:
         return convert_temperature(data['temperature'], unit=unit)
 
     def get_humidity(self, relative=True):
-        """
-        Fetch the humidity from the sensor.
-        The value can be the relative humidity (`relative=True`), with
-        values between 0 and 100. Alternatively, it returns the absolute
-        humidity in kg / m^3.
+        """Get a humidity reading.
+
+        Fetches a humidity reading from the sensor. The value can be the
+        relative humidity (`relative=True`), with values between 0 and 100.
+        Alternatively, it returns the absolute humidity in kg / m^3.
         """
         data = self.get_data()
 
@@ -79,7 +86,8 @@ class Sensor:
 
     def get_pressure(self, unit='hPa', height_above_sea_level=None,
                      as_pressure_at_sea_level=False):
-        """
+        """Get a pressure reading.
+
         Fetch the pressure from the sensor.
         The value can be returned in hPa (`unit='hPa'), Pa (`unit='Pa'),
         kPa (`unit='kPa'`), atm (`unit='atm'`), or mm Hg (`unit='mmHg'`).
@@ -102,17 +110,24 @@ class Sensor:
         return convert_pressure(data['pressure'], unit=unit)
 
     def get_data(self):
-        """
+        """Get a reading from the sensor.
+
         Fetches the latest humidity, temperature, and pressure data
-        from the sensor.
+        from the sensor. The data is returned as a dictionary with
+        keys "temperature", "humidity", and "pressure".
         """
         return read_sensor(bus=self.bus,
                            address=self.device_id)
 
     def print_data(self, temp_unit='C', relative_humidity=True,
                    pressure_unit='hPa', n_significant_digits=4):
-        """
-        Print sensor data
+        """Print sensor data.
+
+        Prints the temperature, humidity, and pressure in a easy readable
+        format. The user can specify the temperature unit (e.g. "C") via
+        `temp_unit`, the pressure unit (e.g. "hPa") via `pressure_unit`,
+        and whether to use absolute or relative humidity via
+        `relative_humidity`.
         """
         data = self.get_data()
         temperature = convert_temperature(data['temperature'], temp_unit)
@@ -138,8 +153,9 @@ class Sensor:
 
     @staticmethod
     def _initialize_bus():
-        """
-        Detect the raspberry pi version and initialize the bus
+        """Initialize the bus.
+
+        Detects the raspberry pi version and initializes the bus.
         Note that the Raspberry Pi version detection is necessary because
         the first revisions needs to be initialized slightly differently.
         """
@@ -165,8 +181,9 @@ class Sensor:
         return bus
 
     def _get_info_about_sensor(self):
-        """
-        Obtain chip ID and version from sensor
+        """Fetch information about the sensor.
+
+        Obtains the chip ID and version from sensor.
         """
         reg_id = 0xD0
         chip_id, chip_version = self.bus.read_i2c_block_data(self.device_id,

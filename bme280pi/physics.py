@@ -1,5 +1,4 @@
-"""
-Physics functions for pressure/temperature/humidity/...
+"""Physics functions for pressure/temperature/humidity/...
 
 Provides functions related to converting humidity from relative
 to absolute humidity. Also provides functions for converting
@@ -15,8 +14,9 @@ import math
 
 
 def validate_pressure(pressure):
-    """
-    Validates pressure:
+    """Validate input pressure.
+
+    Checks that pressure satisfies the following constraints:
     - needs to be positive
     - needs to be smaller than 1100 (largest value ever was 1083)
 
@@ -31,8 +31,9 @@ def validate_pressure(pressure):
 
 
 def validate_temperature(temperature):
-    """
-    Validates pressure:
+    """Validate input temperature.
+
+    Checks that temperature satisfies the following constraints:
     - needs to be smaller than 100 degrees (humidity calculations
       don't make much sense above this temperature)
     - needs to be larger than -100 (same reason)
@@ -48,8 +49,9 @@ def validate_temperature(temperature):
 
 
 def validate_humidity(rel_humidity):
-    """
-    Validates relative humidity:
+    """Validate input humidity.
+
+    Checks that humidity satisfies the following constraints:
     - relative humidity must be below 100%
     - relative humidity must be above 0%
 
@@ -63,8 +65,9 @@ def validate_humidity(rel_humidity):
 
 
 def validate_height_above_sea_level(height_above_sea_level):
-    """
-    Validates height above sea level:
+    """Validate height above sea level.
+
+    Checks that height above sea level satisfies the following constraints:
     - needs to be positive
     - needs to be smaller than 11000 (limit of validity of conversion formula)
 
@@ -80,8 +83,10 @@ def validate_height_above_sea_level(height_above_sea_level):
 
 
 def pressure_function(pressure):
-    """
-    Calculates the pressure function for the saturation vapor
+    """Saturation vapor pressure function.
+
+    Calculates the relevant factor to convert the saturation vapor pressure
+    in pure phase to the saturation vapor pressure in moist air.
 
     Inputs:
        - pressure (in hPa)
@@ -93,22 +98,23 @@ def pressure_function(pressure):
 
 
 def calculate_abs_humidity(pressure, temperature, rel_humidity):
-    """
-    Calculates the absolute humidity
+    """Calculate the absolute humidity.
 
-    Steps:
+    The absolute humidity is calculated in the following steps:
     - we first calculate the saturation vapor pressure in pure phase (e_w)
     - we use the pressure function f(p) to calculate the saturation vapor
         pressure of moist air (e_w_moist)
-    - We can then use the ideal gas law, PV = m R T,
-            PV = (m/M) R T
-        where R is the universal gas constant (8.314 kg m^2 / s^2 mol K),
-        and transform it to
-            eV = m R_v T
-        where R_v is the specific gas constant for water vapor (461.5 J / kg K)
-        and then
+    - We can then calculate the absolute humidity using the formulae below.
+
+    We start with the ideal gas law, PV = m R T,
+        PV = (m/M) R T
+    where R is the universal gas constant (8.314 kg m^2 / s^2 mol K), and
+    transform it to
+        eV = m R_v T
+    where R_v is the specific gas constant for water vapor (461.5 J / kg K).
+    Then,
         m / V = e / (R_v T)
-        which is the absolute humidity (i.e. mass of water vapor in a unit
+    which is the absolute humidity (i.e. mass of water vapor per volume).
 
     Inputs:
         - pressure (in hPa)
@@ -136,7 +142,8 @@ def calculate_abs_humidity(pressure, temperature, rel_humidity):
 
 
 def convert_pressure(pressure, unit='hPa'):
-    """
+    """Pressure in user-specified unit.
+
     Converts pressure from hPa (input) to the desired unit.
     Available options are:
      - hPa (`unit='hPa'`)
@@ -166,7 +173,8 @@ def convert_pressure(pressure, unit='hPa'):
 
 
 def convert_temperature(temperature, unit='C'):
-    """
+    """Temperature in user-specified unit.
+
     Converts temperature from Celsius (input) to the desired unit.
     Available options are:
     - Celsius (`unit='C'`)
@@ -194,18 +202,19 @@ def convert_temperature(temperature, unit='C'):
 
 
 def pressure_at_sea_level(pressure, temperature, height_above_sea_level):
-    """
-    Convert pressure to pressure at sea level
+    r"""Convert pressure to pressure at sea level.
 
-    This function uses a simple formula to convert the observed pressure
-    to the equivalent pressure at sea level. The pressure at sea level
-    is a commonly quoted quantity, often referred to as QFF whereas the
-    "local" observed pressure is referred to as QFE.
+    Uses a simple formula to convert the observed pressure to the equivalent
+    pressure at sea level. The pressure at sea level is a commonly quoted
+    quantity, often referred to as QFF whereas the "local" observed pressure
+    is referred to as QFE.
 
-    :math:
-        e = -\\frac{g}{R_d \\gamma}
-        f = \\left(1 + \\frac{\\gamma \\cdot h}{T - \\gamma\\cdot h}\\right)
+    .. math::
+
+        e = -\frac{g}{R_d \gamma}
+        f = \left(1 + \frac{\gamma \cdot h}{T - \gamma\cdot h}\right)
         p = p_0 * f ^ e
+
     where `e` is the exponent, `f` is the correction factor, `gamma` is the
     derivative `dT/dz` (which is approx. -0.0065 K/m), g is the gravitational
     acceleration in free fall (9.80665 m/s^2), `T` is the temperature,
@@ -237,10 +246,12 @@ def pressure_at_sea_level(pressure, temperature, height_above_sea_level):
 
 
 def round_to_n_significant_digits(value, n_digits):
-    """
-    Round to n significant digits, e.g. for 1234 the result
+    """Round to n significant digits.
+
+    Rounds a number to n significant digits, e.g. for 1234 the result
     with 2 significant digits would be 1200.
-    Input:
+
+    Inputs:
         - the value to be rounded
         - the desired number of significant digits
     Output:

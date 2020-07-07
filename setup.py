@@ -1,6 +1,7 @@
 # !/usr/bin/env python3
-"""
-bme280pi: the BME280 Sensor Reader for Raspberry Pi
+
+"""bme280pi: the BME280 Sensor Reader for Raspberry Pi.
+
 This package provides:
 - an intuitive way to access the Bosch BME280 sensor
 - the ability to convert measurements into different units
