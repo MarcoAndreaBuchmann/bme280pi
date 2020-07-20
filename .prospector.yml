@@ -9,6 +9,11 @@ doc-warnings: true
 test-warnings: true
 member-warnings: false
 
+ignore-patterns:
+  - ^tests/.*
+  - ^build/.*
+  - ^dist/.*
+
 dodgy:
   run: true
 
