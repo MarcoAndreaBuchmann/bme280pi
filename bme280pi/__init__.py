@@ -13,7 +13,7 @@ You can also just fetch the temperature, the pressure, or the humidity with
 the individual `.get_temperature()`, `.get_pressure`, and `get_humidity`
 functions.
 
-The standard units are degrees Celsius (C) for temperature, hectoPascal (hPa)
+The standard units are degrees Celsius (C) for temperature, hectopascal (hPa)
 for pressure, and percentage for humidity. Other units are supported for
 temperature (F and K) and pressure (mm Hg, atm, Pa, kPa), and the humidity
 can also be indicated in absolute terms (i.e. g per m^3).
