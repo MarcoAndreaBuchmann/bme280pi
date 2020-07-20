@@ -1,9 +1,45 @@
 """Functions to read out and interpret the raw sensor data.
 
-This module is based on the bme280 script from MattHawkinsUK,
+This module contains all functions necessary for reading out the raw data from
+the BME280 sensor according to the Bosch data sheet, and processing this raw
+data in order to obtain a more digestible format, i.e. the temperature,
+pressure, and relative humidity.
+
+The best way to use this module is through the `Sensor` class in `sensor.py`,
+i.e. by initializing a `Sensor` object and using it to fetch data. One could
+use the functions in this module to do the individual steps, but it's much
+more practical to use the `Sensor` class directly and have it take care of
+everything.
+
+Example usage:
+>>> sensor = Sensor()
+>>> sensor.get_temperature(unit='C')
+
+Have a look at the `Sensor` class in `sensor.py` for more detailed information.
+
+The (helper) functions contained in this module are the following:
+- get_short(data, index):
+- get_unsigned_short(data, index):
+- get_character(data, index):
+- get_unsigned_character(data, index):
+- read_raw_sensor(bus, address, oversampling, reg_data):
+- get_modified(cal, i, function, shift=False):
+- process_calibration_data(cal):
+- shift_read(values, i, j, k):
+- extract_raw_values(data):
+- improve_temperature_measurement(temp_raw, dig_t):
+- improve_pressure_measurement(raw_pressure, dig_p, t_fine):
+- improve_humidity_measurement(raw_humidity, dig_h, t_fine):
+- extract_values(data, dig_t, dig_p, dig_h):
+- validate_oversampling(oversampling=None):
+- read_sensor(bus, address, reg_data=0xF7,
+
+Notes:
+
+1) This module is based on the bme280 script from MattHawkinsUK,
 https://bitbucket.org/MattHawkinsUK/rpispy-misc/raw/master/python/bme280.py
 
-Before changing parameters in the code, it is recommended to have a look at
+2) Before changing parameters in the code, it is recommended to have a look at
 the data sheet available directly from Bosch:
 https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/
 """
@@ -13,17 +49,41 @@ from ctypes import c_short
 
 
 def get_short(data, index):
-    """Return two bytes from data as a signed 16-bit value."""
+    """Return two bytes from data as a signed 16-bit value.
+
+    Args:
+        data (list): raw data from sensor
+        index (int): index entry from which to read data
+
+    Returns:
+        c_short: extracted signed 16-bit value
+    """
     return c_short((data[index + 1] << 8) + data[index]).value
 
 
 def get_unsigned_short(data, index):
-    """Return two bytes from data as an unsigned 16-bit value."""
+    """Return two bytes from data as an unsigned 16-bit value.
+
+    Args:
+        data (list): raw data from sensor
+        index (int): index entry from which to read data
+
+    Returns:
+        int: extracted unsigned 16-bit value
+    """
     return (data[index+1] << 8) + data[index]
 
 
 def get_character(data, index):
-    """Return one byte from data as a signed char."""
+    """Return one byte from data as a signed char.
+
+    Args:
+        data (list): raw data from sensor
+        index (int): index entry from which to read data
+
+    Returns:
+        int: extracted signed char value
+    """
     result = data[index]
     if result > 127:
         result -= 256
@@ -31,7 +91,15 @@ def get_character(data, index):
 
 
 def get_unsigned_character(data, index):
-    """Return one byte from data as an unsigned char."""
+    """Return one byte from data as an unsigned char.
+
+    Args:
+        data (list): raw data from sensor
+        index (int): index entry from which to read data
+
+    Returns:
+        int: extracted unsigned 16-bit value
+    """
     result = data[index] & 0xFF
     return result
 
@@ -43,6 +111,15 @@ def read_raw_sensor(bus, address, oversampling, reg_data):
     data type, see Table 16, page 25, of the data sheet.
     For information about oversampling, see e.g. page 26.
     For a memory map, see Table 18 on page 27.
+
+    Args:
+        bus (object): bus from which to read data
+        address (int): address at which to read data
+        oversampling (dict): over-sampling rates (see data sheet)
+        reg_data (int): register at which to obtain data
+
+    Returns:
+        tuple: calibration data as a list, and sensor data
     """
     control_register_address = 0xF4
     control_register_address_humidity = 0xF2
@@ -77,6 +154,15 @@ def get_modified(cal, i, function, shift=False):
 
     Extracts information from block, and shifts it
     if necessary.
+
+    Args:
+        cal (list): calibration data
+        i (int): index from which to read
+        function (object): function to apply to data
+        shift (bool): whether to apply a shift to result
+
+    Returns:
+        int: processed data from specified blocks
     """
     dig = get_character(cal[2], i)
     dig = (dig << 24) >> 20
@@ -89,7 +175,14 @@ def process_calibration_data(cal):
     """Process calibration data.
 
     Processes calibration data to extract the information pertaining
-    to temperature, pressure, and humidity
+    to temperature, pressure, and humidity. Returns the relevant block
+    data.
+
+    Args:
+        cal (list): calibration data
+
+    Returns:
+        tuple: block values for temperature, pressure, and humidity
     """
     dig_t = [get_unsigned_short(cal[0], 0),
              get_short(cal[0], 2),
@@ -115,31 +208,49 @@ def process_calibration_data(cal):
     return dig_t, dig_p, dig_h
 
 
-def extract_raw_values(data):
-    """Extract raw reading of temperature, pressure, and humidity."""
-    def shift_read(values, i, j, k):
-        """Read raw data from array and shift it.
+def shift_read(values, i, j, k):
+    """Read raw data from array and shift it.
 
-        Reads values from array and shifts them the following way:
-        - the first one is shifted to the left by 12 places
-        - the second value is shifted to the left by 4 places
-        - the third one is shifted to the right by 4 places
-        Then a bitwise "or" operation is performed.
-        Example: values = [1, 2, 3]
-        - the first entry (1) is shifted 12 places to the left:
-              000000000001 becomes 1000000000000
-        - the second entry (2) is shifted 4 places to the left:
-              000000000010 becomes 000000100000
-        - the third entry (3) is shifted 4 places to the right:
-              000000000011 becomes 000000000000
-        Finally, a bit-wise "or" is performed:
-              1000000000000 or
-              0000000100000 or
-              0000000000000 is
-              1000000100000
-        which, in decimal, is 4128.
-        """
-        return (values[i] << 12) | (values[j] << 4) | (values[k] >> 4)
+    Reads values from array and shifts them the following way:
+    - the first one is shifted to the left by 12 places
+    - the second value is shifted to the left by 4 places
+    - the third one is shifted to the right by 4 places
+    Then a bitwise "or" operation is performed.
+    Example: values = [1, 2, 3]
+    - the first entry (1) is shifted 12 places to the left:
+          000000000001 becomes 1000000000000
+    - the second entry (2) is shifted 4 places to the left:
+          000000000010 becomes 000000100000
+    - the third entry (3) is shifted 4 places to the right:
+          000000000011 becomes 000000000000
+    Finally, a bit-wise "or" is performed:
+          1000000000000 or
+          0000000100000 or
+          0000000000000 is
+          1000000100000
+    which, in decimal, is 4128.
+
+    Args:
+        values (list): the raw values
+        i (int): first index to read from
+        j (int): second index to read from
+        k (int): third index to read from
+
+    Returns:
+        int: extracted (shifted) values
+    """
+    return (values[i] << 12) | (values[j] << 4) | (values[k] >> 4)
+
+
+def extract_raw_values(data):
+    """Extract raw reading of temperature, pressure, and humidity.
+
+    Args:
+        data (list): raw sensor data
+
+    Returns:
+        tuple: raw pressure, temperature, and humidity
+    """
     raw_pressure = shift_read(data, 0, 1, 2)
     raw_temperature = shift_read(data, 3, 4, 5)
     raw_humidity = (data[6] << 8) | data[7]
@@ -153,8 +264,15 @@ def improve_temperature_measurement(temp_raw, dig_t):
     Adapts the raw temperature measurement according to a formula specified
     in the Bosch data sheet.
 
+    Args:
+        temp_raw (int): raw temperature reading
+        dig_t (list): blocks of data pertaining to temperature
+
+    Returns:
+        tuple: refined temperature measurement and reference point
+
     Reference:
-    Bosch data sheet, Appendix A, "BME280_compensate_T_double"
+        Bosch data sheet, Appendix A, "BME280_compensate_T_double"
     """
     var1 = ((((temp_raw >> 3) - (dig_t[0] << 1))) * (dig_t[1])) >> 11
     var2 = (((temp_raw >> 4) - (dig_t[0])) * ((temp_raw >> 4) - (dig_t[0])))
@@ -170,6 +288,14 @@ def improve_pressure_measurement(raw_pressure, dig_p, t_fine):
     Adapts the pressure measurement according to the formula specified in
     the Bosch data sheet, and adjust it for the available temperature
     measurement, along with the pressure readout details.
+
+    Args:
+        raw_pressure (float): raw temperature measurement
+        dig_p (list): data blocks pertaining to pressure
+        t_fine (float): temperature measurement
+
+    Returns:
+        float: improved pressure measurement
 
     Reference:
     Bosch data sheet, Appendix A, "BME280_compensate_P_double"
@@ -199,6 +325,14 @@ def improve_humidity_measurement(raw_humidity, dig_h, t_fine):
     Adapts the humidity measurement by using the available temperature
     information, along with the humidity readout details.
 
+    Args:
+        raw_humidity (int): raw humidity
+        dig_h (list): raw data blocks pertaining to humidity measurement
+        t_fine (float): temperature measurement
+
+    Returns:
+        float: refined humidity measurement
+
     Reference:
     Bosch data sheet, Appendix A, "BME280_compensate_H_double"
     """
@@ -216,7 +350,16 @@ def extract_values(data, dig_t, dig_p, dig_h):
     """Extract values from raw data.
 
     Extracts temperature, pressure, and humidity from raw data and
-    correct it to provide the best measurement
+    correct it to provide the best measurement.
+
+    Args:
+        data (list): data blocks from sensor
+        dig_t (list): data blocks pertaining to temperature measurement
+        dig_p (list): data blocks pertaining to pressure measurement
+        dig_h (list): data blocks pertaining to humidity measurement
+
+    Returns:
+        tuple: three floats representing temperature, pressure, and humidity
     """
     raw_pressure, raw_temperature, raw_humidity = extract_raw_values(data)
 
@@ -235,8 +378,11 @@ def validate_oversampling(oversampling=None):
     (to use the default values) or it can be a dictionary containing the
     three keys "temperature", "humidity", and "pressure".
 
-    Inputs:
-        - oversampling: either None or a dictionary
+    Args:
+        oversampling (dict): None or a dictionary with over-sampling values
+
+    Returns:
+        dict: oversampling values as a dictionary
     """
     if oversampling is None:
         oversampling = {'temperature': 2,
@@ -266,6 +412,15 @@ def read_sensor(bus, address, reg_data=0xF7,
 
     This module is based on the bme280 script from MattHawkinsUK, which in
     turn is based on the data sheet from Bosch (see references below).
+
+    Args:
+        bus (object): the sensor bus to read from
+        address (int): the address from which to read data
+        reg_data (int): register at which to obtain data
+        oversampling (dict): oversampling rates
+
+    Returns:
+         dict: measurements for temperature, pressure, and humidity
 
     References:
     https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/

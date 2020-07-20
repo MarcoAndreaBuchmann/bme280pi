@@ -11,6 +11,11 @@ def get_list_of_revisions():
 
     Provides a list of known Raspberry Pi CPU IDs and the corresponding
     Raspberry Pi model name ("revision").
+
+    Args:
+
+    Returns:
+        dict: dictionary of Raspberry Pi Revisions
     """
     known_revisions = {'0002': 'Model B R1',
                        '0003': 'Model B R1',
@@ -46,15 +51,20 @@ def detect_raspberry_pi_version():
     Note that if the model comes back as "Unknown", you may need
     to add it to the dictionary in `get_list_of_revisions`. The
     current list is up-to-date as of June 2020.
+
+    Args:
+
+    Returns:
+        str: Raspberry Pi version
     """
     revision = "0000"
     known_revisions = get_list_of_revisions()
     try:
-        cpuinfo = open("/proc/cpuinfo", "r")
-        for line in cpuinfo:
+        cpu_info = open("/proc/cpuinfo", "r")
+        for line in cpu_info:
             if line.find("Revision") >= 0:
                 revision = line.rstrip().replace(" ", "").split(":")[1]
-        cpuinfo.close()
+        cpu_info.close()
     except FileNotFoundError:
         warnings.warn("Could not find /proc/cpuinfo")
         return "Unknown"
