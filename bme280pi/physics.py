@@ -1,10 +1,21 @@
-"""
-Physics functions for pressure/temperature/humidity/...
+"""Physics functions for pressure/temperature/humidity/...
 
 Provides functions related to converting humidity from relative
 to absolute humidity. Also provides functions for converting
 pressure & temperature into different units (e.g. Kelvin, mm Hg),
 and to round numbers to a n significant digits.
+
+The following functions are present in this module:
+- validate_pressure(pressure)
+- validate_temperature(temperature)
+- validate_humidity(rel_humidity)
+- validate_height_above_sea_level(height_above_sea_level)
+- pressure_function(pressure)
+- calculate_abs_humidity(pressure, temperature, rel_humidity)
+- convert_pressure(pressure, unit='hPa')
+- convert_temperature(temperature, unit='C')
+- pressure_at_sea_level(pressure, temperature, height_above_sea_level)
+- round_to_n_significant_digits(value, n_digits)
 
 source for formulae:
 https://planetcalc.com/2167/
@@ -15,13 +26,19 @@ import math
 
 
 def validate_pressure(pressure):
-    """
-    Validates pressure:
+    """Validate input pressure.
+
+    Checks that pressure satisfies the following constraints:
     - needs to be positive
     - needs to be smaller than 1100 (largest value ever was 1083)
 
-    Input:
-    - pressure (in hPa)
+    A `ValueError` is raised if any of the assumptions are violated.
+
+    Args:
+        pressure (float/int): pressure in hPa
+
+    Returns:
+        None
     """
     if not isinstance(pressure, (float, int)):
         raise TypeError("Pressure must be int or float")
@@ -31,14 +48,20 @@ def validate_pressure(pressure):
 
 
 def validate_temperature(temperature):
-    """
-    Validates pressure:
+    """Validate input temperature.
+
+    Checks that temperature satisfies the following constraints:
     - needs to be smaller than 100 degrees (humidity calculations
       don't make much sense above this temperature)
     - needs to be larger than -100 (same reason)
 
-    Input:
-    - temperature (in C)
+    A `ValueError` is raised if any of the assumptions are violated.
+
+    Args:
+        temperature (float/int): temperature in degrees Celsius
+
+    Returns:
+        None
     """
     if not isinstance(temperature, (float, int)):
         raise TypeError("Temperature must be int or float")
@@ -48,13 +71,19 @@ def validate_temperature(temperature):
 
 
 def validate_humidity(rel_humidity):
-    """
-    Validates relative humidity:
+    """Validate input humidity.
+
+    Checks that humidity satisfies the following constraints:
     - relative humidity must be below 100%
     - relative humidity must be above 0%
 
-    Input:
-    - humidity (in %)
+    A `ValueError` is raised if any of the assumptions are violated.
+
+    Args:
+        rel_humidity (float/int): relative humidity in percent (i.e. 0-100)
+
+    Returns:
+        None
     """
     if not isinstance(rel_humidity, (float, int)):
         raise TypeError("Relative Humidity must be int or float")
@@ -63,13 +92,19 @@ def validate_humidity(rel_humidity):
 
 
 def validate_height_above_sea_level(height_above_sea_level):
-    """
-    Validates height above sea level:
+    """Validate height above sea level.
+
+    Checks that height above sea level satisfies the following constraints:
     - needs to be positive
     - needs to be smaller than 11000 (limit of validity of conversion formula)
 
-    Input:
-    - height above sea level (in m)
+    A `ValueError` is raised if any of the assumptions are violated.
+
+    Args:
+        height_above_sea_level (float/int): height above sea level in meters
+
+    Returns:
+        None
     """
     if not isinstance(height_above_sea_level, (float, int)):
         raise TypeError("Height above sea level must be int or float")
@@ -80,44 +115,48 @@ def validate_height_above_sea_level(height_above_sea_level):
 
 
 def pressure_function(pressure):
-    """
-    Calculates the pressure function for the saturation vapor
+    """Saturation vapor pressure function.
 
-    Inputs:
-       - pressure (in hPa)
-    Output:
-       - pressure function value
+    Calculates the relevant factor to convert the saturation vapor pressure
+    in pure phase to the saturation vapor pressure in moist air.
+
+    Args:
+        pressure (int/float): pressure in hPa
+
+    Returns:
+        float: factor to convert saturation vapor pressure
     """
     validate_pressure(pressure)
     return 1.0016 + 3.16 * 1e-6 * pressure - 0.074 / pressure
 
 
 def calculate_abs_humidity(pressure, temperature, rel_humidity):
-    """
-    Calculates the absolute humidity
+    """Calculate the absolute humidity.
 
-    Steps:
+    The absolute humidity is calculated in the following steps:
     - we first calculate the saturation vapor pressure in pure phase (e_w)
     - we use the pressure function f(p) to calculate the saturation vapor
         pressure of moist air (e_w_moist)
-    - We can then use the ideal gas law, PV = m R T,
-            PV = (m/M) R T
-        where R is the universal gas constant (8.314 kg m^2 / s^2 mol K),
-        and transform it to
-            eV = m R_v T
-        where R_v is the specific gas constant for water vapor (461.5 J / kg K)
-        and then
+    - We can then calculate the absolute humidity using the formulae below.
+
+    We start with the ideal gas law, PV = m R T,
+        PV = (m/M) R T
+    where R is the universal gas constant (8.314 kg m^2 / s^2 mol K), and
+    transform it to
+        eV = m R_v T
+    where R_v is the specific gas constant for water vapor (461.5 J / kg K).
+    Then,
         m / V = e / (R_v T)
-        which is the absolute humidity (i.e. mass of water vapor in a unit
+    which is the absolute humidity (i.e. mass of water vapor per volume).
 
-    Inputs:
-        - pressure (in hPa)
-        - temperature (in C)
-        - relative humidity (in %)
-    Output:
-        - humidity measurement value
+    Args:
+        pressure (int/float): pressure in hPa
+        temperature (int/float): temperature in degrees Celsius
+        rel_humidity (int/float): relative humidity in percent (0-100)
 
-        """
+    Returns:
+        float: humidity measurement value
+    """
     validate_pressure(pressure)
     validate_temperature(temperature)
     validate_humidity(rel_humidity)
@@ -136,7 +175,8 @@ def calculate_abs_humidity(pressure, temperature, rel_humidity):
 
 
 def convert_pressure(pressure, unit='hPa'):
-    """
+    """Pressure in user-specified unit.
+
     Converts pressure from hPa (input) to the desired unit.
     Available options are:
      - hPa (`unit='hPa'`)
@@ -145,11 +185,12 @@ def convert_pressure(pressure, unit='hPa'):
      - atm (`unit='atm'`)
      - mm Hg (`unit='mmHg'`)
 
-    Inputs:
-        - pressure (in hPa)
-        - unit to convert pressure to (hPa/Pa/kPa/atm/mmHg)
-    Output:
-        - pressure in desired unit
+    Args:
+        pressure (int/float): pressure in hPa
+        unit (str): unit TO CONVERT PRESSURE TO (hPa/Pa/kPa/atm/mmHg)
+
+    Returns:
+        float: pressure in specified unit
     """
     validate_pressure(pressure)
 
@@ -166,18 +207,20 @@ def convert_pressure(pressure, unit='hPa'):
 
 
 def convert_temperature(temperature, unit='C'):
-    """
+    """Temperature in user-specified unit.
+
     Converts temperature from Celsius (input) to the desired unit.
     Available options are:
     - Celsius (`unit='C'`)
     - Fahrenheit (`unit='F'`)
     - Kelvin (`unit='K'`)
 
-    Inputs:
-        - temperature (in C)
-        - unit to convert temperature to (C/F/K)
-    Output:
-        - temperature in desired unit
+    Args:
+        temperature (int/float): temperature in degrees Celsius
+        unit (str): unit to convert the temperature to (C/F/K)
+
+    Returns:
+        float: temperature in desired unit
     """
     validate_temperature(temperature)
 
@@ -194,18 +237,19 @@ def convert_temperature(temperature, unit='C'):
 
 
 def pressure_at_sea_level(pressure, temperature, height_above_sea_level):
-    """
-    Convert pressure to pressure at sea level
+    r"""Convert pressure to pressure at sea level.
 
-    This function uses a simple formula to convert the observed pressure
-    to the equivalent pressure at sea level. The pressure at sea level
-    is a commonly quoted quantity, often referred to as QFF whereas the
-    "local" observed pressure is referred to as QFE.
+    Uses a simple formula to convert the observed pressure to the equivalent
+    pressure at sea level. The pressure at sea level is a commonly quoted
+    quantity, often referred to as QFF whereas the "local" observed pressure
+    is referred to as QFE.
 
-    :math:
-        e = -\\frac{g}{R_d \\gamma}
-        f = \\left(1 + \\frac{\\gamma \\cdot h}{T - \\gamma\\cdot h}\\right)
+    .. math::
+
+        e = -\frac{g}{R_d \gamma}
+        f = \left(1 + \frac{\gamma \cdot h}{T - \gamma\cdot h}\right)
         p = p_0 * f ^ e
+
     where `e` is the exponent, `f` is the correction factor, `gamma` is the
     derivative `dT/dz` (which is approx. -0.0065 K/m), g is the gravitational
     acceleration in free fall (9.80665 m/s^2), `T` is the temperature,
@@ -213,12 +257,13 @@ def pressure_at_sea_level(pressure, temperature, height_above_sea_level):
     observed pressure, and `p_0` is the pressure at sea level. All calculations
     are in SI units.
 
-    Inputs:
-        - pressure (in hPa)
-        - temperature (in C)
-        - height above sea level (in meters)
-    Output:
-        - equivalent pressure at sea level (in hPa)
+    Args:
+        pressure (float/int): pressure in hPa
+        temperature (float/int): temperature in degrees Celsius
+        height_above_sea_level (float/int): height above sea level in meters
+
+    Returns:
+        float: equivalent pressure at sea level in hPa
     """
     validate_pressure(pressure)
     validate_temperature(temperature)
@@ -237,14 +282,17 @@ def pressure_at_sea_level(pressure, temperature, height_above_sea_level):
 
 
 def round_to_n_significant_digits(value, n_digits):
-    """
-    Round to n significant digits, e.g. for 1234 the result
+    """Round to n significant digits.
+
+    Rounds a number to n significant digits, e.g. for 1234 the result
     with 2 significant digits would be 1200.
-    Input:
-        - the value to be rounded
-        - the desired number of significant digits
-    Output:
-        - the value rounded to the desired number of significant digits
+
+    Args:
+        value (float/int): the value to be rounded
+        n_digits (int): the desired number of significant digits
+
+    Returns:
+        float: the value rounded to the desired number of significant digits
     """
     if not isinstance(value, (float, int)):
         raise TypeError("Value must be int or float")
