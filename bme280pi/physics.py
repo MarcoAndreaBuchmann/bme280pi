@@ -270,15 +270,16 @@ def pressure_at_sea_level(pressure, temperature, height_above_sea_level):
     validate_height_above_sea_level(height_above_sea_level)
 
     gamma = -0.0065
-    g = 9.80665
+    gravitational_acc = 9.80665
     r_d = 287
-    h = height_above_sea_level
     temp = convert_temperature(temperature, unit='K')
 
-    e = - g / (r_d * gamma)
-    f = 1 + gamma * h / (temp - gamma * h)
+    exponent = - gravitational_acc / (r_d * gamma)
+    nominator = gamma * height_above_sea_level
+    denominator = (temp - gamma * height_above_sea_level)
+    base = 1 + nominator / denominator
 
-    return pressure / pow(f, e)
+    return pressure / pow(base, exponent)
 
 
 def round_to_n_significant_digits(value, n_digits):

@@ -35,7 +35,6 @@ The (helper) functions contained in this module are the following:
 - read_sensor(bus, address, reg_data=0xF7,
 
 Notes:
-
 1) This module is based on the bme280 script from MattHawkinsUK,
 https://bitbucket.org/MattHawkinsUK/rpispy-misc/raw/master/python/bme280.py
 
@@ -71,7 +70,7 @@ def get_unsigned_short(data, index):
     Returns:
         int: extracted unsigned 16-bit value
     """
-    return (data[index+1] << 8) + data[index]
+    return (data[index + 1] << 8) + data[index]
 
 
 def get_character(data, index):
