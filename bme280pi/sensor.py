@@ -54,15 +54,18 @@ class Sensor:
     >>> sensor.get_pressure(unit='hPa')
     >>> sensor.get_pressure(unit='mmHg')
     """
-    def __init__(self):
+    def __init__(self, address=0x76):
         """Initialize the sensor class.
 
         Carries out the following steps to initialize the class:
         - detect the Raspberry Pi version
         - initialize the bus
         - store information about the sensor in the class
+
+        Args:
+            address (int): the address of the sensor. default: 0x76
         """
-        self.device_id = 0x76
+        self.address = address
         self.bus = self._initialize_bus()
 
         self.chip_id, self.chip_version = self._get_info_about_sensor()
@@ -150,7 +153,7 @@ class Sensor:
             dict: dictionary with current temperature, humidity, and pressure
         """
         return read_sensor(bus=self.bus,
-                           address=self.device_id)
+                           address=self.address)
 
     def print_data(self, temp_unit='C', relative_humidity=True,
                    pressure_unit='hPa', n_significant_digits=4):
@@ -234,7 +237,7 @@ class Sensor:
             tuple: chip ID and version as one string each
         """
         reg_id = 0xD0
-        chip_id, chip_version = self.bus.read_i2c_block_data(self.device_id,
+        chip_id, chip_version = self.bus.read_i2c_block_data(self.address,
                                                              reg_id,
                                                              2)
         return chip_id, chip_version
