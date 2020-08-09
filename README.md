@@ -6,9 +6,9 @@
 
 # bme280pi: the BME280 Sensor Reader for Raspberry Pi
 
-## How to Install
+## How to Install bme280pi
 
-### Enable the I2C Interface
+### 1) Enable the I2C Interface
 
 1) `sudo raspi-config`
 2) Select "Interfacing Options"
@@ -19,25 +19,27 @@
 
 For a walk-through with screenshots see the references below.
 
-### Install Utilities
+### 2) Install Utilities
 
-Install `python-smbus` and `i2ctools`:
-`sudo apt-get update && sudo apt-get install -y python-smbus i2c-tools`
+1) Install `python-smbus` and `i2ctools`: `sudo apt-get update && sudo apt-get install -y python-smbus i2c-tools`
 
-Then, shut down your Raspberry Pi: `sudo halt` . Disconnect your Raspberry Pi power supply.
-You are now ready to connect the BME280 sensor.
+2) Then, shut down your Raspberry Pi:`sudo halt` .
+
+3) Disconnect your Raspberry Pi power supply.
+
+4) You are now ready to connect the BME280 sensor.
  
-### Connect the BME280 sensor
+### 3) Connect the BME280 sensor
 
 ![ModuleSetup](https://i.imgur.com/8i3sSlC.png)
 
-### Install This Module
+### 4) Install This Module
 
-### Installing With pip (Recommended)
+#### 4a) Installing With pip (Recommended)
 
 You can then install this module by running `pip install bme280pi`
 
-### Installing From Source
+#### 4b) Installing From Source (alternative to 4a)
 
 If you want the latest version, you can check out the sources and install the
 package yourself:
@@ -48,7 +50,7 @@ cd bme280pi
 python setup.py install
 ```
 
-### Using it in your script
+## How to Use bme280pi In Your Script
 
 You can initialize the sensor class as follows:
 
@@ -67,6 +69,23 @@ just the humidity (`sensor.get_humidity()`).
 
 Note that all commands support user-specified units, e.g. `sensor.get_temperature(unit='F')`,
 or `sensor.get_pressure(unit='mmHg')`.
+
+### Using Multiple Sensors
+
+One can also read out multiple sensors using this package. Suppose that the first sensor is located
+at `0x76` and the second one at `0x77`, then you can initialize two sensors as follows:
+
+```python
+from bme280pi import Sensor
+
+sensor1 = Sensor(address=0x76)
+sensor2 = Sensor(address=0x77)
+
+data_from_sensor_one = sensor1.get_data()
+data_from_sensor_two = sensor2.get_data()
+```
+
+### Plotting Data Obtained From Sensor
 
 You can e.g. query the sensor every 10 seconds, and add the results to a dictionary, and then
 turn that into a pandas DataFrame and plot that (requires matplotlib and pandas):
@@ -104,12 +123,12 @@ plt.title("Relative Humidity (%)")
 plt.savefig("Measurements.png")
 ```
 
-### Reporting Issues
+## Reporting Issues
 
 Please feel free to report any issues you encounter at the
 [issue tracker](https://github.com/MarcoAndreaBuchmann/bme280pi/issues).
 
-### References
+## References
 
 [Bosch BME280 Data Sheet](https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/)
 
