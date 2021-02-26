@@ -94,10 +94,12 @@ turn that into a pandas DataFrame and plot that (requires matplotlib and pandas)
 import time
 import datetime
 
-import pandas
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from bme280pi import Sensor
+
+sensor = Sensor(address=0x76)
 
 measurements = {}
 
