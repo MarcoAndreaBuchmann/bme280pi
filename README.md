@@ -10,25 +10,22 @@
 
 ### 1) Enable the I2C Interface
 
-1) `sudo raspi-config`
-2) Select "Interfacing Options"
-3) Highlight the "I2C" option, and activate "Select" (use tab)
-4) Answer the question if you'd like the ARM I2C interface to be enabled with "Yes"
-5) Select "Ok"
-6) Reboot
+1)  `sudo raspi-config`
+2)  Select "Interfacing Options"
+3)  Highlight the "I2C" option, and activate "Select" (use tab)
+4)  Answer the question if you'd like the ARM I2C interface to be enabled with "Yes"
+5)  Select "Ok"
+6)  Reboot
 
 For a walk-through with screenshots see the references below.
 
 ### 2) Install Utilities
 
-1) Install `python-smbus` and `i2ctools`: `sudo apt-get update && sudo apt-get install -y python-smbus i2c-tools`
+1)  Install `python-smbus` and `i2ctools`: `sudo apt-get update && sudo apt-get install -y python-smbus i2c-tools`
+2)  Then, shut down your Raspberry Pi:`sudo halt` .
+3)  Disconnect your Raspberry Pi power supply.
+4)  You are now ready to connect the BME280 sensor.
 
-2) Then, shut down your Raspberry Pi:`sudo halt` .
-
-3) Disconnect your Raspberry Pi power supply.
-
-4) You are now ready to connect the BME280 sensor.
- 
 ### 3) Connect the BME280 sensor
 
 ![ModuleSetup](https://i.imgur.com/8i3sSlC.png)
