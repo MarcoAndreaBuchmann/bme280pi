@@ -44,7 +44,7 @@ package yourself:
 ```bash
 git clone https://github.com/MarcoAndreaBuchmann/bme280pi.git
 cd bme280pi
-python setup.py install
+pip install .
 ```
 
 ## How to Use bme280pi In Your Script
