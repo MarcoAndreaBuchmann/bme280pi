@@ -25,7 +25,7 @@ download_url = github_url + "archive/v1.0.tar.gz"
 
 
 setup(name='bme280pi',
-      version='1.1.0',
+      version='1.1.2',
       license='MIT',
       description="bme280pi: the BME280 Sensor Reader for Raspberry Pi",
       long_description=README,
@@ -51,5 +51,12 @@ setup(name='bme280pi',
                    'Programming Language :: Python :: 3.4',
                    'Programming Language :: Python :: 3.5',
                    'Programming Language :: Python :: 3.6',
-                   'Programming Language :: Python :: 3.7']
+                   'Programming Language :: Python :: 3.7',
+                   'Programming Language :: Python :: 3.8',
+                   'Programming Language :: Python :: 3.9',
+                   'Programming Language :: Python :: 3.10',
+                   'Programming Language :: Python :: 3.11',
+                   'Programming Language :: Python :: 3.12',
+                   'Programming Language :: Python :: 3.13',
+                   ]
       )
