@@ -3,7 +3,15 @@
 
 name: Coverage
 
-on: ["push", "pull_request"]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   build:
@@ -12,25 +20,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.8
+        python-version: 3.12
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pytest coverage
-        python setup.py develop
-    - name: Install CodeClimate Test Reporter
-      run: |
-        curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-        chmod +x ./cc-test-reporter
-    - name: Run coverage
-      env:
-        CODE_CLIMATE_SECRET: ${{ secrets.CODE_CLIMATE_SECRET }}
-      run: |
-        ./cc-test-reporter before-build
-        coverage run --include=bme280pi/* -m pytest test/*
-        coverage xml
-        ./cc-test-reporter after-build --exit-code $? --coverage-input-type coverage.py -r ${CODE_CLIMATE_SECRET}
+        pip install .
+    - name: Test with coverage reporting
+      run: coverage run -m unittest discover -s tests
+    - name: Export coverage data as LCOV
+      run: coverage lcov -o coverage.lcov
+    - name: Upload coverage data to Qlty Cloud
+      uses: qltysh/qlty-action/coverage@v2
+      with:
+        oidc: true
+        files: coverage.lcov
