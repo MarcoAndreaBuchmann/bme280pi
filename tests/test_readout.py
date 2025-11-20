@@ -9,7 +9,7 @@ from bme280pi.readout import (get_short, get_unsigned_short, get_character,
                               improve_humidity_measurement, extract_values,
                               read_sensor)
 
-from .sensor import FakeDataBus
+from tests.test_sensor import FakeDataBus
 
 
 class FakeRecordingBus:
