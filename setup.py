@@ -21,11 +21,11 @@ if sys.version_info.major < 3 or sys.version_info.minor < 5:
     sys.exit(1)
 
 github_url = "https://github.com/MarcoAndreaBuchmann/bme280pi/"
-download_url = github_url + "archive/v1.0.tar.gz"
+download_url = github_url + "archive/v1.1.3.tar.gz"
 
 
 setup(name='bme280pi',
-      version='1.1.0',
+      version='1.1.3',
       license='MIT',
       description="bme280pi: the BME280 Sensor Reader for Raspberry Pi",
       long_description=README,
