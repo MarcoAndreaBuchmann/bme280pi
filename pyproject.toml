@@ -31,7 +31,9 @@ requires-python = ">=3.8"
 dependencies = [
     "smbus",
 ]
-dynamic = ["optional-dependencies"]
+
+[project.optional-dependencies]
+test = ["pytest"]
 
 [project.urls]
 Homepage = "https://github.com/MarcoAndreaBuchmann/bme280pi"
@@ -39,13 +41,4 @@ Homepage = "https://github.com/MarcoAndreaBuchmann/bme280pi"
 "Source Code" = "https://github.com/MarcoAndreaBuchmann/bme280pi"
 
 [tool.setuptools]
-# Automatically discover packages (equivalent to find_packages())
-# This works if your package structure is standard (e.g., bme280pi/ folder at root)
 packages = { find = {} }
-
-[tool.setuptools.dynamic]
-optional-dependencies = { test = ["pytest"] }
-
-# Optional: If you want `tests_require` behavior (used by pytest, etc.)
-# Note: `tests_require` is deprecated; use `test` extra instead:
-#   pip install bme280pi[test]
