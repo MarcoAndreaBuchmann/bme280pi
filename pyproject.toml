@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools >= 61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bme280pi"
+version = "1.2.0"
+description = "bme280pi: the BME280 Sensor Reader for Raspberry Pi"
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "MIT" }
+authors = [
+    { name = "Marco-Andrea Buchmann", email = "bmarcoa@gmail.com" }
+]
+keywords = [
+    "Raspberry", "Pi", "Raspberry Pi", "BME280", "sensor",
+    "readout", "temperature", "pressure", "humidity"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "smbus",
+]
+dynamic = ["optional-dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/MarcoAndreaBuchmann/bme280pi"
+"Bug Tracker" = "https://github.com/MarcoAndreaBuchmann/bme280pi/issues"
+"Source Code" = "https://github.com/MarcoAndreaBuchmann/bme280pi"
+
+[tool.setuptools]
+# Automatically discover packages (equivalent to find_packages())
+# This works if your package structure is standard (e.g., bme280pi/ folder at root)
+packages = { find = {} }
+
+[tool.setuptools.dynamic]
+optional-dependencies = { test = ["pytest"] }
+
+# Optional: If you want `tests_require` behavior (used by pytest, etc.)
+# Note: `tests_require` is deprecated; use `test` extra instead:
+#   pip install bme280pi[test]
