@@ -30,7 +30,7 @@ jobs:
     - name: Check if version exists on PyPI
       id: check_pypi
       env:
-        PACKAGE_NAME: your-package-name
+        PACKAGE_NAME: bme280pi
       run: |
         VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
         if curl -sf "https://pypi.org/pypi/$PACKAGE_NAME/$VERSION/json" > /dev/null; then
