@@ -1,42 +1,41 @@
 from unittest import TestCase
 
-from bme280pi.physics import (validate_pressure, validate_temperature,
+from bme280pi.physics import (calculate_abs_humidity, convert_pressure,
+                              convert_temperature, pressure_at_sea_level,
+                              pressure_function, round_to_n_significant_digits,
                               validate_height_above_sea_level,
-                              validate_humidity, pressure_function,
-                              calculate_abs_humidity, convert_pressure,
-                              convert_temperature,
-                              round_to_n_significant_digits,
-                              pressure_at_sea_level)
+                              validate_humidity, validate_pressure,
+                              validate_temperature)
 
 
 class TestValidation(TestCase):
-    def test_validate_pressure(self):
+    def test_validate_pressure(self) -> None:
         with self.assertRaises(TypeError):
-            validate_pressure("string_input")
+            validate_pressure("string_input")  # type: ignore[arg-type]
         with self.assertRaises(ValueError):
             validate_pressure(-1)
         with self.assertRaises(ValueError):
             validate_pressure(1200)
 
-    def test_validate_temperature(self):
+    def test_validate_temperature(self) -> None:
         with self.assertRaises(TypeError):
-            validate_temperature("string_input")
+            validate_temperature("string_input")  # type: ignore[arg-type]
         with self.assertRaises(ValueError):
             validate_temperature(-111)
         with self.assertRaises(ValueError):
             validate_temperature(111)
 
-    def test_validate_humidity(self):
+    def test_validate_humidity(self) -> None:
         with self.assertRaises(TypeError):
-            validate_humidity("string_input")
+            validate_humidity("string_input")  # type: ignore[arg-type]
         with self.assertRaises(ValueError):
             validate_humidity(-1)
         with self.assertRaises(ValueError):
             validate_humidity(123)
 
-    def test_height_above_sea_level(self):
+    def test_height_above_sea_level(self) -> None:
         with self.assertRaises(TypeError):
-            validate_height_above_sea_level("string_input")
+            validate_height_above_sea_level("string_input")  # type: ignore[arg-type]
         with self.assertRaises(ValueError):
             validate_height_above_sea_level(-1)
         with self.assertRaises(ValueError):
@@ -44,216 +43,217 @@ class TestValidation(TestCase):
 
 
 class TestPressureFunction(TestCase):
-    def test(self):
+    def test(self) -> None:
         test_values = [100, 800, 850, 900, 950, 1000, 1050, 1100]
-        correct_values = [1.001176,
-                          1.0040355,
-                          1.0041989411764707,
-                          1.0043617777777778,
-                          1.004524105263158,
-                          1.0046860000000002,
-                          1.0048475238095238,
-                          1.0050087272727273]
+        correct_values = [
+            1.001176,
+            1.0040355,
+            1.0041989411764707,
+            1.0043617777777778,
+            1.004524105263158,
+            1.0046860000000002,
+            1.0048475238095238,
+            1.0050087272727273,
+        ]
 
         for i_test, test_value in enumerate(test_values):
             test_result = pressure_function(test_value)
             correct_result = correct_values[i_test]
             self.assertLess(abs(test_result - correct_result), 1e-6)
 
-    def test_exceptions(self):
+    def test_exceptions(self) -> None:
         with self.assertRaises(ValueError):
             pressure_function(0)
         with self.assertRaises(ValueError):
             pressure_function(1111)
         with self.assertRaises(TypeError):
-            pressure_function('a')
+            pressure_function("a")  # type: ignore[arg-type]
 
 
 class TestCalculateAbsHumidity(TestCase):
-    def test(self):
+    def test(self) -> None:
         test_pressure = [100, 800, 850, 900, 950, 1000, 1050, 1100]
         test_temp = [-10, 0, 10, 15, 20, 25, 40, 60]
         test_rel = [80, 10, 20, 90, 40, 50, 43.25, 12.34]
 
-        correct_values = [0.0018930155819513275,
-                          0.00048681001461818693,
-                          0.0018843546921809028,
-                          0.011566932891098143,
-                          0.006927846890531939,
-                          0.011536889704637605,
-                          0.022155411985739303,
-                          0.01612715205125449]
+        correct_values = [
+            0.0018930155819513275,
+            0.00048681001461818693,
+            0.0018843546921809028,
+            0.011566932891098143,
+            0.006927846890531939,
+            0.011536889704637605,
+            0.022155411985739303,
+            0.01612715205125449,
+        ]
 
         for i_test, correct_value in enumerate(correct_values):
-            result = calculate_abs_humidity(pressure=test_pressure[i_test],
-                                            temperature=test_temp[i_test],
-                                            rel_humidity=test_rel[i_test])
+            result = calculate_abs_humidity(
+                pressure=test_pressure[i_test],
+                temperature=test_temp[i_test],
+                rel_humidity=test_rel[i_test],
+            )
             self.assertLess(abs(result - correct_value), 1e-6)
 
-    def test_valid_range(self):
+    def test_valid_range(self) -> None:
         with self.assertRaises(ValueError):
             # pressure too low
-            calculate_abs_humidity(pressure=0,
-                                   temperature=25,
-                                   rel_humidity=50)
+            calculate_abs_humidity(pressure=0, temperature=25, rel_humidity=50)
         with self.assertRaises(ValueError):
             # pressure too high
-            calculate_abs_humidity(pressure=1111,
-                                   temperature=25,
-                                   rel_humidity=50)
+            calculate_abs_humidity(pressure=1111, temperature=25, rel_humidity=50)
         with self.assertRaises(ValueError):
             # rel humidity too low
-            calculate_abs_humidity(pressure=975,
-                                   temperature=25,
-                                   rel_humidity=-1)
+            calculate_abs_humidity(pressure=975, temperature=25, rel_humidity=-1)
         with self.assertRaises(ValueError):
             # rel humidity too high
-            calculate_abs_humidity(pressure=975,
-                                   temperature=25,
-                                   rel_humidity=110)
+            calculate_abs_humidity(pressure=975, temperature=25, rel_humidity=110)
         with self.assertRaises(ValueError):
             # temp too low
-            calculate_abs_humidity(pressure=975,
-                                   temperature=-101,
-                                   rel_humidity=50)
+            calculate_abs_humidity(pressure=975, temperature=-101, rel_humidity=50)
         with self.assertRaises(ValueError):
             # temp too high
-            calculate_abs_humidity(pressure=975,
-                                   temperature=101,
-                                   rel_humidity=50)
+            calculate_abs_humidity(pressure=975, temperature=101, rel_humidity=50)
 
-    def test_bad_arguments(self):
+    def test_bad_arguments(self) -> None:
         with self.assertRaises(TypeError):
-            calculate_abs_humidity(pressure='a',
-                                   temperature=25,
-                                   rel_humidity=110)
+            calculate_abs_humidity(pressure="a", temperature=25, rel_humidity=110)  # type: ignore[arg-type]
         with self.assertRaises(TypeError):
-            calculate_abs_humidity(pressure=975,
-                                   temperature='a',
-                                   rel_humidity=110)
+            calculate_abs_humidity(pressure=975, temperature="a", rel_humidity=110)  # type: ignore[arg-type]
         with self.assertRaises(TypeError):
-            calculate_abs_humidity(pressure=975,
-                                   temperature=25,
-                                   rel_humidity='a')
+            calculate_abs_humidity(pressure=975, temperature=25, rel_humidity="a")  # type: ignore[arg-type]
 
 
 class TestConvertPressure(TestCase):
-    def test(self):
+    def test(self) -> None:
         test_values = [100, 500, 850, 900, 950, 1000, 1050, 1099]
 
-        correct_values = {'hPa': test_values,
-                          'Pa': [100 * p for p in test_values],
-                          'kPa': [0.1 * p for p in test_values],
-                          'atm': [9.8692316931427E-4 * p for p in test_values],
-                          'mmHg': [0.750062 * p for p in test_values]}
+        correct_values = {
+            "hPa": test_values,
+            "Pa": [100 * p for p in test_values],
+            "kPa": [0.1 * p for p in test_values],
+            "atm": [9.8692316931427e-4 * p for p in test_values],
+            "mmHg": [0.750062 * p for p in test_values],
+        }
 
         for unit in correct_values:
-            for i in range(len(correct_values[unit])):
-                self.assertLess(abs(correct_values[unit][i] -
-                                    convert_pressure(test_values[i],
-                                                     unit=unit)),
-                                1e-6)
+            for i in range(len(correct_values[unit])):  # type: ignore[arg-type]
+                self.assertLess(
+                    abs(
+                        correct_values[unit][i]  # type: ignore[index]
+                        - convert_pressure(test_values[i], unit=unit)
+                    ),
+                    1e-6,
+                )
 
-    def test_exceptions(self):
+    def test_exceptions(self) -> None:
         with self.assertRaises(ValueError):
             convert_pressure(-123)
         with self.assertRaises(ValueError):
             convert_pressure(1234)
 
         with self.assertRaises(TypeError):
-            convert_pressure('a')
+            convert_pressure("a")  # type: ignore[arg-type]
         with self.assertRaises(Exception):
-            convert_pressure(123, 'UnknownUnit')
+            convert_pressure(123, "UnknownUnit")
 
 
 class TestConvertTemperature(TestCase):
-    def test(self):
+    def test(self) -> None:
         test_values = [-50, -40, 30, 20, 10, 0, 12.34, 20, 30, 40, 50, 99]
 
-        correct_values = {'C': test_values,
-                          'F': [32 + (9. / 5) * t for t in test_values],
-                          'K': [273.15 + t for t in test_values]}
+        correct_values = {
+            "C": test_values,
+            "F": [32 + (9.0 / 5) * t for t in test_values],
+            "K": [273.15 + t for t in test_values],
+        }
 
         for unit in correct_values:
             for i in range(len(correct_values[unit])):
-                self.assertLess(abs(correct_values[unit][i] -
-                                    convert_temperature(test_values[i],
-                                                        unit=unit)),
-                                1e-6)
+                self.assertLess(
+                    abs(
+                        correct_values[unit][i]
+                        - convert_temperature(test_values[i], unit=unit)
+                    ),
+                    1e-6,
+                )
 
-    def test_exceptions(self):
+    def test_exceptions(self) -> None:
         with self.assertRaises(ValueError):
             convert_temperature(-123)
         with self.assertRaises(ValueError):
             convert_temperature(123)
 
         with self.assertRaises(TypeError):
-            convert_temperature('a')
+            convert_temperature("a")  # type: ignore[arg-type]
         with self.assertRaises(Exception):
-            convert_temperature(23, 'UnknownUnit')
+            convert_temperature(23, "UnknownUnit")
 
 
 class TestRoundToNSignificantDigits(TestCase):
-    def test(self):
+    def test(self) -> None:
         multipliers = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
         test_values = [1.23456789 * m for m in multipliers]
 
-        correct_results = {1: [1 * m for m in multipliers],
-                           2: [1.2 * m for m in multipliers],
-                           3: [1.23 * m for m in multipliers],
-                           4: [1.235 * m for m in multipliers],
-                           5: [1.2346 * m for m in multipliers]}
+        correct_results = {
+            1: [1 * m for m in multipliers],
+            2: [1.2 * m for m in multipliers],
+            3: [1.23 * m for m in multipliers],
+            4: [1.235 * m for m in multipliers],
+            5: [1.2346 * m for m in multipliers],
+        }
 
         for n_digits in correct_results:
             for i, test_value in enumerate(test_values):
-                test_result = round_to_n_significant_digits(test_value,
-                                                            n_digits)
-                self.assertLess(abs(correct_results[n_digits][i] -
-                                    test_result),
-                                1e-6)
+                test_result = round_to_n_significant_digits(test_value, n_digits)
+                self.assertLess(abs(correct_results[n_digits][i] - test_result), 1e-6)
 
-    def test_exceptions(self):
+    def test_exceptions(self) -> None:
         with self.assertRaises(TypeError):
-            round_to_n_significant_digits('a', 2)
+            round_to_n_significant_digits("a", 2)  # type: ignore[arg-type]
         with self.assertRaises(TypeError):
-            round_to_n_significant_digits(2, 'a')
+            round_to_n_significant_digits(2, "a")  # type: ignore[arg-type]
         with self.assertRaises(ValueError):
             round_to_n_significant_digits(2, 0)
         with self.assertRaises(ValueError):
             round_to_n_significant_digits(2, -1)
         with self.assertRaises(TypeError):
-            round_to_n_significant_digits(2, 1.234)
+            round_to_n_significant_digits(2, 1.234)  # type: ignore[arg-type]
 
 
 class TestPressureAtSeaLevel(TestCase):
-    def test(self):
-        p = pressure_at_sea_level(pressure=972,
-                                  temperature=25,
-                                  height_above_sea_level=440)
+    def test(self) -> None:
+        p = pressure_at_sea_level(
+            pressure=972, temperature=25, height_above_sea_level=440
+        )
         self.assertLess(abs(p - 1022.03), 0.01)
 
-    def test_exceptions(self):
+    def test_exceptions(self) -> None:
         with self.assertRaises(TypeError):
-            pressure_at_sea_level(pressure="hello",
-                                  temperature=25,
-                                  height_above_sea_level=440)
+            pressure_at_sea_level(
+                pressure="hello",  # type: ignore[arg-type]
+                temperature=25,
+                height_above_sea_level=440,
+            )
         with self.assertRaises(TypeError):
-            pressure_at_sea_level(pressure=972,
-                                  temperature="string",
-                                  height_above_sea_level=440)
+            pressure_at_sea_level(
+                pressure=972,
+                temperature="string",  # type: ignore[arg-type]
+                height_above_sea_level=440,
+            )
         with self.assertRaises(TypeError):
-            pressure_at_sea_level(pressure=972,
-                                  temperature=25,
-                                  height_above_sea_level="string")
+            pressure_at_sea_level(
+                pressure=972, temperature=25, height_above_sea_level="string"  # type: ignore[arg-type]
+            )
         with self.assertRaises(ValueError):
-            pressure_at_sea_level(pressure=1234,
-                                  temperature=25,
-                                  height_above_sea_level=440)
+            pressure_at_sea_level(
+                pressure=1234, temperature=25, height_above_sea_level=440
+            )
         with self.assertRaises(ValueError):
-            pressure_at_sea_level(pressure=972,
-                                  temperature=123,
-                                  height_above_sea_level=440)
+            pressure_at_sea_level(
+                pressure=972, temperature=123, height_above_sea_level=440
+            )
         with self.assertRaises(ValueError):
-            pressure_at_sea_level(pressure=972,
-                                  temperature=25,
-                                  height_above_sea_level=11111)
+            pressure_at_sea_level(
+                pressure=972, temperature=25, height_above_sea_level=11111
+            )
