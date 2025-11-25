@@ -44,10 +44,12 @@ https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-
 """
 
 import time
+from collections.abc import Callable
 from ctypes import c_short
+from typing import Any
 
 
-def get_short(data, index):
+def get_short(data: list[int], index: int) -> int:
     """Return two bytes from data as a signed 16-bit value.
 
     Args:
@@ -60,7 +62,7 @@ def get_short(data, index):
     return c_short((data[index + 1] << 8) + data[index]).value
 
 
-def get_unsigned_short(data, index):
+def get_unsigned_short(data: list[int], index: int) -> int:
     """Return two bytes from data as an unsigned 16-bit value.
 
     Args:
@@ -73,7 +75,7 @@ def get_unsigned_short(data, index):
     return (data[index + 1] << 8) + data[index]
 
 
-def get_character(data, index):
+def get_character(data: list[int], index: int) -> int:
     """Return one byte from data as a signed char.
 
     Args:
@@ -89,7 +91,7 @@ def get_character(data, index):
     return result
 
 
-def get_unsigned_character(data, index):
+def get_unsigned_character(data: list[int], index: int) -> int:
     """Return one byte from data as an unsigned char.
 
     Args:
@@ -103,7 +105,9 @@ def get_unsigned_character(data, index):
     return result
 
 
-def read_raw_sensor(bus, address, oversampling, reg_data):
+def read_raw_sensor(
+    bus: Any, address: int, oversampling: dict[str, int], reg_data: int
+) -> tuple[list[list[int]], Any]:
     """Read raw sensor data.
 
     For an explanation of the parameter storage, naming, and
@@ -122,11 +126,12 @@ def read_raw_sensor(bus, address, oversampling, reg_data):
     """
     control_register_address = 0xF4
     control_register_address_humidity = 0xF2
-    bus.write_byte_data(address, control_register_address_humidity,
-                        oversampling['humidity'])
+    bus.write_byte_data(
+        address, control_register_address_humidity, oversampling["humidity"]
+    )
 
-    control1 = oversampling['temperature'] << 5
-    control = control1 | oversampling['pressure'] << 2 | 1
+    control1 = oversampling["temperature"] << 5
+    control = control1 | oversampling["pressure"] << 2 | 1
     bus.write_byte_data(address, control_register_address, control)
 
     # Read blocks of calibration data from EEPROM
@@ -145,10 +150,15 @@ def read_raw_sensor(bus, address, oversampling, reg_data):
     # Read temperature/pressure/humidity
     data = bus.read_i2c_block_data(address, reg_data, 8)
 
-    return (cal1, cal2, cal3), data
+    return [cal1, cal2, cal3], data
 
 
-def get_modified(cal, i, function, shift=False):
+def get_modified(
+    cal: list[list[int]],
+    i: int,
+    function: Callable[[list[int], int], int],
+    shift: bool = False,
+) -> int:
     """Obtain and modify data from block.
 
     Extracts information from block, and shifts it
@@ -167,10 +177,12 @@ def get_modified(cal, i, function, shift=False):
     dig = (dig << 24) >> 20
     if shift:
         return dig | (function(cal[2], 4) >> 4 & 0x0F)
-    return dig | (function(cal[2], 4) & 0x0F)
+    return int(dig | (function(cal[2], 4) & 0x0F))
 
 
-def process_calibration_data(cal):
+def process_calibration_data(
+    cal: list[list[int]],
+) -> tuple[list[int], list[int], list[int]]:
     """Process calibration data.
 
     Processes calibration data to extract the information pertaining
@@ -183,9 +195,7 @@ def process_calibration_data(cal):
     Returns:
         tuple: block values for temperature, pressure, and humidity
     """
-    dig_t = [get_unsigned_short(cal[0], 0),
-             get_short(cal[0], 2),
-             get_short(cal[0], 4)]
+    dig_t = [get_unsigned_short(cal[0], 0), get_short(cal[0], 2), get_short(cal[0], 4)]
 
     dig_p = []
     for i in range(6, 23, 2):
@@ -196,37 +206,45 @@ def process_calibration_data(cal):
             value = get_short(cal[0], i)
         dig_p.append(value)
 
-    dig_h = [get_unsigned_character(cal[1], 0),
-             get_short(cal[2], 0),
-             get_unsigned_character(cal[2], 2),
-             get_modified(cal, 3, get_character),
-             get_modified(cal, 5, get_unsigned_character, shift=True),
-             get_character(cal[2], 6)
-             ]
+    dig_h = [
+        get_unsigned_character(cal[1], 0),
+        get_short(cal[2], 0),
+        get_unsigned_character(cal[2], 2),
+        get_modified(cal, 3, get_character),
+        get_modified(cal, 5, get_unsigned_character, shift=True),
+        get_character(cal[2], 6),
+    ]
 
     return dig_t, dig_p, dig_h
 
 
-def shift_read(values, i, j, k):
+def shift_read(values: list[int], i: int, j: int, k: int) -> int:
     """Read raw data from array and shift it.
 
     Reads values from array and shifts them the following way:
+
     - the first one is shifted to the left by 12 places
     - the second value is shifted to the left by 4 places
     - the third one is shifted to the right by 4 places
+
     Then a bitwise "or" operation is performed.
+
     Example: values = [1, 2, 3]
+
     - the first entry (1) is shifted 12 places to the left:
           000000000001 becomes 1000000000000
     - the second entry (2) is shifted 4 places to the left:
           000000000010 becomes 000000100000
     - the third entry (3) is shifted 4 places to the right:
           000000000011 becomes 000000000000
+
     Finally, a bit-wise "or" is performed:
+
           1000000000000 or
           0000000100000 or
           0000000000000 is
           1000000100000
+
     which, in decimal, is 4128.
 
     Args:
@@ -241,7 +259,7 @@ def shift_read(values, i, j, k):
     return (values[i] << 12) | (values[j] << 4) | (values[k] >> 4)
 
 
-def extract_raw_values(data):
+def extract_raw_values(data: list[int]) -> tuple[int, int, int]:
     """Extract raw reading of temperature, pressure, and humidity.
 
     Args:
@@ -257,7 +275,9 @@ def extract_raw_values(data):
     return raw_pressure, raw_temperature, raw_humidity
 
 
-def improve_temperature_measurement(temp_raw, dig_t):
+def improve_temperature_measurement(
+    temp_raw: int, dig_t: list[int]
+) -> tuple[float, float]:
     """Refine the temperature measurement.
 
     Adapts the raw temperature measurement according to a formula specified
@@ -274,14 +294,16 @@ def improve_temperature_measurement(temp_raw, dig_t):
         Bosch data sheet, Appendix A, "BME280_compensate_T_double"
     """
     var1 = ((((temp_raw >> 3) - (dig_t[0] << 1))) * (dig_t[1])) >> 11
-    var2 = (((temp_raw >> 4) - (dig_t[0])) * ((temp_raw >> 4) - (dig_t[0])))
+    var2 = ((temp_raw >> 4) - (dig_t[0])) * ((temp_raw >> 4) - (dig_t[0]))
     var3 = ((var2 >> 12) * (dig_t[2])) >> 14
     t_fine = var1 + var3
     temperature = float(((t_fine * 5) + 128) >> 8)
     return temperature, t_fine
 
 
-def improve_pressure_measurement(raw_pressure, dig_p, t_fine):
+def improve_pressure_measurement(
+    raw_pressure: float, dig_p: list[int], t_fine: float
+) -> float:
     """Refine the pressure measurement.
 
     Adapts the pressure measurement according to the formula specified in
@@ -307,7 +329,7 @@ def improve_pressure_measurement(raw_pressure, dig_p, t_fine):
     var1 = (1.0 + var1 / 32768.0) * dig_p[0]
 
     if var1 == 0:
-        pressure = 0
+        pressure = 0.0
     else:
         pressure = 1048576.0 - raw_pressure
         pressure = ((pressure - var2 / 4096.0) * 6250.0) / var1
@@ -318,7 +340,9 @@ def improve_pressure_measurement(raw_pressure, dig_p, t_fine):
     return pressure
 
 
-def improve_humidity_measurement(raw_humidity, dig_h, t_fine):
+def improve_humidity_measurement(
+    raw_humidity: int, dig_h: list[int], t_fine: float
+) -> float:
     """Refine the humidity measurement.
 
     Adapts the humidity measurement by using the available temperature
@@ -345,7 +369,9 @@ def improve_humidity_measurement(raw_humidity, dig_h, t_fine):
     return humidity
 
 
-def extract_values(data, dig_t, dig_p, dig_h):
+def extract_values(
+    data: list[int], dig_t: list[int], dig_p: list[int], dig_h: list[int]
+) -> tuple[float, float, float]:
     """Extract values from raw data.
 
     Extracts temperature, pressure, and humidity from raw data and
@@ -362,15 +388,14 @@ def extract_values(data, dig_t, dig_p, dig_h):
     """
     raw_pressure, raw_temperature, raw_humidity = extract_raw_values(data)
 
-    temperature, t_fine = improve_temperature_measurement(raw_temperature,
-                                                          dig_t)
+    temperature, t_fine = improve_temperature_measurement(raw_temperature, dig_t)
     pressure = improve_pressure_measurement(raw_pressure, dig_p, t_fine)
     humidity = improve_humidity_measurement(raw_humidity, dig_h, t_fine)
 
     return temperature, pressure, humidity
 
 
-def validate_oversampling(oversampling=None):
+def validate_oversampling(oversampling: dict[str, int] | None = None) -> dict[str, int]:
     """Validate the `oversampling` parameter.
 
     Checks whether the parameter is valid. This parameter can either be None
@@ -384,9 +409,7 @@ def validate_oversampling(oversampling=None):
         dict: oversampling values as a dictionary
     """
     if oversampling is None:
-        oversampling = {'temperature': 2,
-                        'pressure': 2,
-                        'humidity': 2}
+        oversampling = {"temperature": 2, "pressure": 2, "humidity": 2}
 
     if not isinstance(oversampling, dict):
         raise TypeError("oversampling must be a dictionary")
@@ -394,8 +417,12 @@ def validate_oversampling(oversampling=None):
     return oversampling
 
 
-def read_sensor(bus, address, reg_data=0xF7,
-                oversampling=None):
+def read_sensor(
+    bus: Any,
+    address: int,
+    reg_data: int = 0xF7,
+    oversampling: dict[str, int] | None = None,
+) -> dict[str, float]:
     """Read measurements from sensor.
 
     Reads the raw information from the sensor and converts it into a
@@ -426,15 +453,16 @@ def read_sensor(bus, address, reg_data=0xF7,
     """
     oversampling = validate_oversampling(oversampling=oversampling)
 
-    cal, data = read_raw_sensor(bus=bus,
-                                address=address,
-                                oversampling=oversampling,
-                                reg_data=reg_data)
+    cal, data = read_raw_sensor(
+        bus=bus, address=address, oversampling=oversampling, reg_data=reg_data
+    )
 
     dig_t, dig_p, dig_h = process_calibration_data(cal)
 
     temperature, pressure, humidity = extract_values(data, dig_t, dig_p, dig_h)
 
-    return {'temperature': temperature / 100.0,
-            'pressure': pressure / 100.0,
-            'humidity': humidity}
+    return {
+        "temperature": temperature / 100.0,
+        "pressure": pressure / 100.0,
+        "humidity": humidity,
+    }

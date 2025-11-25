@@ -10,10 +10,17 @@ For more information about how to use the `Sensor` class, have a look at the
 documentation of the `Sensor` class itself.
 """
 
-import smbus
+from typing import Any
 
-from bme280pi.physics import calculate_abs_humidity, convert_pressure, \
-    convert_temperature, round_to_n_significant_digits, pressure_at_sea_level
+from smbus2 import SMBus
+
+from bme280pi.physics import (
+    calculate_abs_humidity,
+    convert_pressure,
+    convert_temperature,
+    pressure_at_sea_level,
+    round_to_n_significant_digits,
+)
 from bme280pi.raspberry_pi_version import detect_raspberry_pi_version
 from bme280pi.readout import read_sensor
 
@@ -25,6 +32,7 @@ class I2CException(Exception):
     section of the code. This is due to the I2C interface not being
     properly configured.
     """
+
     pass
 
 
@@ -35,6 +43,7 @@ class Sensor:
     interface to access the sensor information. You can read out the
     temperature, humidity, and pressure using the corresponding get_
     commands:
+
         - `get_temperature`: get the current temperature
         - `get_pressure`: get the current pressure
         - `get_humidity`: get the current humidity
@@ -54,10 +63,12 @@ class Sensor:
     >>> sensor.get_pressure(unit='hPa')
     >>> sensor.get_pressure(unit='mmHg')
     """
-    def __init__(self, address=0x76):
+
+    def __init__(self, address: int = 0x76):
         """Initialize the sensor class.
 
         Carries out the following steps to initialize the class:
+
         - detect the Raspberry Pi version
         - initialize the bus
         - store information about the sensor in the class
@@ -70,7 +81,7 @@ class Sensor:
 
         self.chip_id, self.chip_version = self._get_info_about_sensor()
 
-    def get_temperature(self, unit='C'):
+    def get_temperature(self, unit: str = "C") -> float:
         """Get a temperature reading.
 
         Fetches a temperature reading from the sensor and returns it in the
@@ -85,9 +96,9 @@ class Sensor:
             float: the current temperature in the specified unit
         """
         data = self.get_data()
-        return convert_temperature(data['temperature'], unit=unit)
+        return convert_temperature(data["temperature"], unit=unit)
 
-    def get_humidity(self, relative=True):
+    def get_humidity(self, relative: bool = True) -> float:
         """Get a humidity reading.
 
         Fetches a humidity reading from the sensor. The value can be the
@@ -103,14 +114,20 @@ class Sensor:
         data = self.get_data()
 
         if relative:
-            return data['humidity']
+            return data["humidity"]
 
-        return calculate_abs_humidity(pressure=data['pressure'],
-                                      temperature=data['temperature'],
-                                      rel_humidity=data['humidity'])
+        return calculate_abs_humidity(
+            pressure=data["pressure"],
+            temperature=data["temperature"],
+            rel_humidity=data["humidity"],
+        )
 
-    def get_pressure(self, unit='hPa', height_above_sea_level=None,
-                     as_pressure_at_sea_level=False):
+    def get_pressure(
+        self,
+        unit: str = "hPa",
+        height_above_sea_level: bool | None = None,
+        as_pressure_at_sea_level: bool = False,
+    ) -> float:
         """Get a pressure reading.
 
         Fetch the pressure from the sensor.
@@ -134,15 +151,17 @@ class Sensor:
 
         if as_pressure_at_sea_level:
             if height_above_sea_level is None:
-                raise ValueError("You need to indicate the height above sea " +
-                                 "level to get the equivalent value at sea " +
-                                 "level.")
-            data['pressure'] = pressure_at_sea_level(data['pressure'],
-                                                     data['temperature'],
-                                                     height_above_sea_level)
-        return convert_pressure(data['pressure'], unit=unit)
+                raise ValueError(
+                    "You need to indicate the height above sea "
+                    + "level to get the equivalent value at sea "
+                    + "level."
+                )
+            data["pressure"] = pressure_at_sea_level(
+                data["pressure"], data["temperature"], height_above_sea_level
+            )
+        return convert_pressure(data["pressure"], unit=unit)
 
-    def get_data(self):
+    def get_data(self) -> dict[str, float]:
         """Get a reading from the sensor.
 
         Fetches the latest humidity, temperature, and pressure data
@@ -152,11 +171,15 @@ class Sensor:
         Returns:
             dict: dictionary with current temperature, humidity, and pressure
         """
-        return read_sensor(bus=self.bus,
-                           address=self.address)
+        return read_sensor(bus=self.bus, address=self.address)
 
-    def print_data(self, temp_unit='C', relative_humidity=True,
-                   pressure_unit='hPa', n_significant_digits=4):
+    def print_data(
+        self,
+        temp_unit: str = "C",
+        relative_humidity: float = True,
+        pressure_unit: str = "hPa",
+        n_significant_digits: int = 4,
+    ) -> None:
         """Print sensor data.
 
         Prints the temperature, humidity, and pressure in a easy readable
@@ -175,29 +198,28 @@ class Sensor:
             None: values are printed, not returned.
         """
         data = self.get_data()
-        temperature = convert_temperature(data['temperature'], temp_unit)
-        pressure = convert_pressure(data['pressure'], pressure_unit)
-        humidity = data['humidity']
-        humidity_unit = '%'
+        temperature = convert_temperature(data["temperature"], temp_unit)
+        pressure = convert_pressure(data["pressure"], pressure_unit)
+        humidity = data["humidity"]
+        humidity_unit = "%"
         if not relative_humidity:
-            humidity = calculate_abs_humidity(pressure=data['pressure'],
-                                              temperature=data['temperature'],
-                                              rel_humidity=data['humidity'])
+            humidity = calculate_abs_humidity(
+                pressure=data["pressure"],
+                temperature=data["temperature"],
+                rel_humidity=data["humidity"],
+            )
             humidity_unit = "kg / m^3"
 
         # round to n significant digits
-        temperature = round_to_n_significant_digits(temperature,
-                                                    n_significant_digits)
-        humidity = round_to_n_significant_digits(humidity,
-                                                 n_significant_digits)
-        pressure = round_to_n_significant_digits(pressure,
-                                                 n_significant_digits)
+        temperature = round_to_n_significant_digits(temperature, n_significant_digits)
+        humidity = round_to_n_significant_digits(humidity, n_significant_digits)
+        pressure = round_to_n_significant_digits(pressure, n_significant_digits)
         print("Temperature: ", temperature, temp_unit)
         print("Humidity:    ", humidity, humidity_unit)
         print("Pressure:    ", pressure, pressure_unit)
 
     @staticmethod
-    def _initialize_bus():
+    def _initialize_bus() -> Any:
         """Initialize the bus.
 
         Detects the raspberry pi version and initializes the bus.
@@ -209,26 +231,30 @@ class Sensor:
         """
         bus = None
         argument = 1
-        if detect_raspberry_pi_version() in ['Model B R1',
-                                             'Model A',
-                                             'Model B+',
-                                             'Model A+']:
+        if detect_raspberry_pi_version() in [
+            "Model B R1",
+            "Model A",
+            "Model B+",
+            "Model A+",
+        ]:
             argument = 0
 
         try:
-            bus = smbus.SMBus(argument)
+            bus = SMBus(argument)
         except FileNotFoundError:
-            raise I2CException("SMBus raised a FileNotFoundError; this is " +
-                               "usually due to the i2c interface being " +
-                               "unconfigured. Please run 'sudo raspi-config'" +
-                               " and select Interfacing Options -> I2C, " +
-                               "choose and hit Enter, and then reboot. I2C " +
-                               "should then be configured, and you should " +
-                               "no longer see this exception")
+            raise I2CException(
+                "SMBus raised a FileNotFoundError; this is "
+                + "usually due to the i2c interface being "
+                + "unconfigured. Please run 'sudo raspi-config'"
+                + " and select Interfacing Options -> I2C, "
+                + "choose and hit Enter, and then reboot. I2C "
+                + "should then be configured, and you should "
+                + "no longer see this exception"
+            )
 
         return bus
 
-    def _get_info_about_sensor(self):
+    def _get_info_about_sensor(self) -> tuple[int, int]:
         """Fetch information about the sensor.
 
         Obtains the chip ID and version from sensor.
@@ -237,7 +263,5 @@ class Sensor:
             tuple: chip ID and version as one string each
         """
         reg_id = 0xD0
-        chip_id, chip_version = self.bus.read_i2c_block_data(self.address,
-                                                             reg_id,
-                                                             2)
+        chip_id, chip_version = self.bus.read_i2c_block_data(self.address, reg_id, 2)
         return chip_id, chip_version
