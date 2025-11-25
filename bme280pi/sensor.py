@@ -10,17 +10,21 @@ For more information about how to use the `Sensor` class, have a look at the
 documentation of the `Sensor` class itself.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
-from smbus2 import SMBus
+# Optional import of smbus2 – only available on real Raspberry Pi hardware
+# mypy: ignore-errors
+try:
+    from smbus2 import SMBus  # noqa: F401
+except ImportError:  # pragma: no cover
+    SMBus = None  # type: ignore[misc]
 
-from bme280pi.physics import (
-    calculate_abs_humidity,
-    convert_pressure,
-    convert_temperature,
-    pressure_at_sea_level,
-    round_to_n_significant_digits,
-)
+
+from bme280pi.physics import (calculate_abs_humidity, convert_pressure,
+                              convert_temperature, pressure_at_sea_level,
+                              round_to_n_significant_digits)
 from bme280pi.raspberry_pi_version import detect_raspberry_pi_version
 from bme280pi.readout import read_sensor
 
@@ -125,7 +129,7 @@ class Sensor:
     def get_pressure(
         self,
         unit: str = "hPa",
-        height_above_sea_level: bool | None = None,
+        height_above_sea_level: int | float | None = None,
         as_pressure_at_sea_level: bool = False,
     ) -> float:
         """Get a pressure reading.
