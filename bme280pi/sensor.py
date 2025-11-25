@@ -22,9 +22,13 @@ except ImportError:  # pragma: no cover
     SMBus = None  # type: ignore[misc]
 
 
-from bme280pi.physics import (calculate_abs_humidity, convert_pressure,
-                              convert_temperature, pressure_at_sea_level,
-                              round_to_n_significant_digits)
+from bme280pi.physics import (
+    calculate_abs_humidity,
+    convert_pressure,
+    convert_temperature,
+    pressure_at_sea_level,
+    round_to_n_significant_digits,
+)
 from bme280pi.raspberry_pi_version import detect_raspberry_pi_version
 from bme280pi.readout import read_sensor
 
