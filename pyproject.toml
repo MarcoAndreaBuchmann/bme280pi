@@ -29,7 +29,7 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "smbus",
+    "smbus2",
 ]
 
 [project.optional-dependencies]
@@ -42,3 +42,6 @@ Homepage = "https://github.com/MarcoAndreaBuchmann/bme280pi"
 
 [tool.setuptools]
 packages = { find = {} }
+
+[tool.setuptools.package-data]
+"bme280pi" = ["*.py"]
