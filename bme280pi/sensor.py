@@ -17,9 +17,9 @@ from typing import Any
 # Optional import of smbus2 – only available on real Raspberry Pi hardware
 # mypy: ignore-errors
 try:
-    from smbus2 import SMBus  # noqa: F401
+    import smbus2  # noqa: F401
 except ImportError:  # pragma: no cover
-    SMBus = None  # type: ignore[misc]
+    smbus2 = None  # type: ignore[misc]
 
 
 from bme280pi.physics import (
@@ -248,7 +248,7 @@ class Sensor:
             argument = 0
 
         try:
-            bus = SMBus(argument)
+            bus = smbus2.SMBus(argument)
         except FileNotFoundError:
             raise I2CException(
                 "SMBus raised a FileNotFoundError; this is "
