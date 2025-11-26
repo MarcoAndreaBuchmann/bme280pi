@@ -1,3 +1,4 @@
+import builtins
 import io
 from typing import Any
 from unittest import TestCase, mock
@@ -154,7 +155,7 @@ class TestSensor(TestCase):
     def test_get_pressure_above_sea_level(self) -> None:
         sensor = Sensor()
         pressure = sensor.get_pressure(
-            height_above_sea_level=440,  # type: ignore[arg-type]
+            height_above_sea_level=440,
             as_pressure_at_sea_level=True,
         )
         self.assertLess(abs(pressure - 1019.0420210), 1e-4)
@@ -178,7 +179,11 @@ class TestSensor(TestCase):
         self.assertLess(abs(humidity - 0.009291279797753835), 1e-4)
 
     def test_unconfigured_i2c(self) -> None:
-        with mock.patch("smbus2.SMBus", FileNotFoundSMBus):
+        fake_open = mock.mock_open(read_data="Revision\t: 0000\n")
+        with (
+            mock.patch("smbus2.SMBus", FileNotFoundSMBus),
+            mock.patch(f"{builtins.__name__}.open", fake_open),
+        ):
             with self.assertRaises(I2CException):
                 Sensor()
 
