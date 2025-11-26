@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bme280pi"
-version = "1.2.0"
+version = "1.2.1"
 description = "bme280pi: the BME280 Sensor Reader for Raspberry Pi"
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { text = "MIT" }
