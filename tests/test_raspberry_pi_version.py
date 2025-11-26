@@ -1,8 +1,10 @@
 from typing import Any
 from unittest import TestCase, mock
 
-from bme280pi.raspberry_pi_version import (detect_raspberry_pi_version,
-                                           get_list_of_revisions)
+from bme280pi.raspberry_pi_version import (
+    detect_raspberry_pi_version,
+    get_list_of_revisions,
+)
 
 
 def raise_exception(*args: Any, **kwargs: Any) -> None:

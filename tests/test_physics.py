@@ -1,11 +1,17 @@
 from unittest import TestCase
 
-from bme280pi.physics import (calculate_abs_humidity, convert_pressure,
-                              convert_temperature, pressure_at_sea_level,
-                              pressure_function, round_to_n_significant_digits,
-                              validate_height_above_sea_level,
-                              validate_humidity, validate_pressure,
-                              validate_temperature)
+from bme280pi.physics import (
+    calculate_abs_humidity,
+    convert_pressure,
+    convert_temperature,
+    pressure_at_sea_level,
+    pressure_function,
+    round_to_n_significant_digits,
+    validate_height_above_sea_level,
+    validate_humidity,
+    validate_pressure,
+    validate_temperature,
+)
 
 
 class TestValidation(TestCase):

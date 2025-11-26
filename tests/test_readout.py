@@ -1,14 +1,21 @@
 from typing import Any
 from unittest import TestCase
 
-from bme280pi.readout import (extract_raw_values, extract_values,
-                              get_character, get_modified, get_short,
-                              get_unsigned_character, get_unsigned_short,
-                              improve_humidity_measurement,
-                              improve_pressure_measurement,
-                              improve_temperature_measurement,
-                              process_calibration_data, read_raw_sensor,
-                              read_sensor)
+from bme280pi.readout import (
+    extract_raw_values,
+    extract_values,
+    get_character,
+    get_modified,
+    get_short,
+    get_unsigned_character,
+    get_unsigned_short,
+    improve_humidity_measurement,
+    improve_pressure_measurement,
+    improve_temperature_measurement,
+    process_calibration_data,
+    read_raw_sensor,
+    read_sensor,
+)
 from tests.test_sensor import FakeDataBus
 
 
