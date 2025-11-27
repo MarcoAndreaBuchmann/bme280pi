@@ -1,4 +1,9 @@
-Sphinx>=7.2,<8
-sphinx-rtd-theme>=2.0,<3
-sphinx-autodoc-typehints>=1.25,<2
-sphinx-copybutton>=0.5,<1
+IPython
+Sphinx
+sphinx_rtd_theme
+sphinx_autodoc_typehints
+sphinx_copybutton
+sphinxcontrib-jquery
+sphinx-rtd-theme
+sphinx-autodoc-typehints
+sphinx-copybutton
