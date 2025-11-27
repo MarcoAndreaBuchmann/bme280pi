@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bme280pi"
-version = "1.2.0"
+version = "1.2.1"
 description = "bme280pi: the BME280 Sensor Reader for Raspberry Pi"
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { text = "MIT" }
@@ -29,7 +29,7 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "smbus",
+    "smbus2",
 ]
 
 [project.optional-dependencies]
@@ -42,3 +42,18 @@ Homepage = "https://github.com/MarcoAndreaBuchmann/bme280pi"
 
 [tool.setuptools]
 packages = { find = {} }
+
+[tool.setuptools.package-data]
+"bme280pi" = ["*.py"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 88

@@ -1,4 +1,4 @@
-name: "CodeQL"
+name: "Code Quality"
 
 on:
   push:
@@ -9,9 +9,13 @@ on:
   schedule:
     - cron: '0 19 * * 2'
 
+permissions:
+  contents: read
+  security-events: read
+
 jobs:
   analyze:
-    name: Analyze
+    name: Analyze code quality
     runs-on: ubuntu-latest
 
     steps:
@@ -22,33 +26,34 @@ jobs:
         # a pull request then we can checkout the head.
         fetch-depth: 2
 
-    # If this run was triggered by a pull request event, then checkout
-    # the head of the pull request instead of the merge commit.
-    - run: git checkout HEAD^2
-      if: ${{ github.event_name == 'pull_request' }}
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
 
-    # Initializes the CodeQL tools for scanning.
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort mypy
+
+    - name: Check code formatting with black
+      run: black . --check --diff
+
+    - name: Check import ordering with isort
+      run: isort . --check --diff
+
+    - name: Check static types with mypy
+      run: mypy .
+
+    # --- CodeQL section starts here ---
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       # Override language selection by uncommenting this and choosing your languages
       # with:
       #   languages: go, javascript, csharp, python, cpp, java
 
-    # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
-    # If this step fails, then you should remove it and run the build manually (see below)
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
-
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 https://git.io/JvXDl
-
-    # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
-    #    and modify them (or add more) to build your code if your project
-    #    uses a compiled language
-
-    #- run: |
-    #   make bootstrap
-    #   make release
+      uses: github/codeql-action/autobuild@v4
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4

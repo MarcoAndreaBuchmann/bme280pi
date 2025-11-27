@@ -1,11 +1,13 @@
+import builtins
 import io
+from typing import Any
 from unittest import TestCase, mock
 
-from bme280pi.sensor import Sensor, I2CException
+from bme280pi.sensor import I2CException, Sensor
 
 
 class FakeSMBus:
-    def __init__(self, value):
+    def __init__(self, value: int) -> None:
         """
         This is a fake bus class (to replace SMBus).
         It records the value it is initialized with, and makes
@@ -15,72 +17,105 @@ class FakeSMBus:
         self.value = value
 
     @staticmethod
-    def read_i2c_block_data(address, register, length, force=None):
+    def read_i2c_block_data(
+        address: int, register: int, length: int, force: bool | None = None
+    ) -> tuple[str, str]:
         return "fake_chip_id", "fake_version"
 
 
 class TestInitializeBus(TestCase):
-    def test(self):
+    def test(self) -> None:
         # this test requires us to override the processor type and smbbus
-        known_revisions = {'0002': 0,
-                           '0003': 0,
-                           '0004': 1,
-                           '0005': 1,
-                           '0006': 1,
-                           '0007': 0,
-                           '0008': 0,
-                           '0009': 0,
-                           '000d': 1,
-                           '000e': 1,
-                           '000f': 1,
-                           '0010': 0,
-                           '0011': 1,
-                           '0012': 0,
-                           'a01041': 1,
-                           'a21041': 1,
-                           '900092': 1,
-                           '900093': 1,
-                           'a02082': 1,
-                           'a22082': 1,
-                           '9000c1': 1,
-                           'c03111': 1,
-                           'abcdef': 1,
-                           '0000': 1}
+        known_revisions = {
+            "0002": 0,
+            "0003": 0,
+            "0004": 1,
+            "0005": 1,
+            "0006": 1,
+            "0007": 0,
+            "0008": 0,
+            "0009": 0,
+            "000d": 1,
+            "000e": 1,
+            "000f": 1,
+            "0010": 0,
+            "0011": 1,
+            "0012": 0,
+            "a01041": 1,
+            "a21041": 1,
+            "900092": 1,
+            "900093": 1,
+            "a02082": 1,
+            "a22082": 1,
+            "9000c1": 1,
+            "c03111": 1,
+            "abcdef": 1,
+            "0000": 1,
+        }
 
         for revision in known_revisions:
             m = mock.mock_open(read_data="\nRevision:" + revision + "\n")
-            with mock.patch('builtins.open', m):
-                with mock.patch('smbus.SMBus', FakeSMBus):
+            with mock.patch("builtins.open", m):
+                with mock.patch("smbus2.SMBus", FakeSMBus):
                     sensor = Sensor()
-                    self.assertEqual(sensor.bus.value,
-                                     known_revisions[revision])
+                    self.assertEqual(sensor.bus.value, known_revisions[revision])
 
 
 class FakeDataBus:
-    def __init__(self, starting_point=-1):
+    def __init__(self, starting_point: int = -1) -> None:
         """
         A further fake bus class (to replace SMBus).
         This version returns data that is a realistic representation
         of actual data
         """
         self.i_read = starting_point
-        self.data = [['fake_chip_id', 'fake_version'],
-                     [96, 110, 203, 104, 50, 0, 29, 145, 59, 215, 208, 11,
-                      232, 38, 42, 255, 249, 255, 172, 38, 10, 216, 189, 16],
-                     [75],
-                     [129, 1, 0, 16, 44, 3, 30],
-                     [76, 60, 128, 129, 49, 128, 94, 120]]
+        self.data = [
+            ["fake_chip_id", "fake_version"],
+            [
+                96,
+                110,
+                203,
+                104,
+                50,
+                0,
+                29,
+                145,
+                59,
+                215,
+                208,
+                11,
+                232,
+                38,
+                42,
+                255,
+                249,
+                255,
+                172,
+                38,
+                10,
+                216,
+                189,
+                16,
+            ],
+            [75],
+            [129, 1, 0, 16, 44, 3, 30],
+            [76, 60, 128, 129, 49, 128, 94, 120],
+        ]
 
-    def write_byte_data(self, address, register, value, force=None):
+    def write_byte_data(
+        self, address: int, register: int, value: int, force: bool | None = None
+    ) -> None:
         pass
 
-    def read_i2c_block_data(self, address, register, length, force=None):
+    def read_i2c_block_data(
+        self, address: int, register: int, length: int, force: bool | None = None
+    ) -> list[int]:
         self.i_read += 1
-        return self.data[self.i_read]
+        return self.data[self.i_read]  # type: ignore[return-value]
 
 
 class FileNotFoundSMBus:
-    def __init__(self, bus_address):
+    def __init__(self, bus_address: int) -> None:
         """
         This fake bus class raises a FileNotFoundError, because that's what
         SMBus can do in case I2C is not configured.
@@ -88,50 +123,53 @@ class FileNotFoundSMBus:
         raise FileNotFoundError("No such file or directory")
 
 
-def initialize_fake_bus(*args, **kwargs):
+def initialize_fake_bus(*args: Any, **kwargs: Any) -> Any:
     return FakeDataBus()
 
 
 class TestSensor(TestCase):
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
-    def test_get_data(self):
+    def test_get_data(self) -> None:
         sensor = Sensor()
         self.assertEqual(sensor.chip_id, "fake_chip_id")
         self.assertEqual(sensor.chip_version, "fake_version")
 
         data = sensor.get_data()
-        self.assertLess(abs(data['temperature'] - 24.65), 1e-4)
-        self.assertLess(abs(data['pressure'] - 969.1056565652227), 1e-4)
-        self.assertLess(abs(data['humidity'] - 41.07329061361983), 1e-4)
+        self.assertLess(abs(data["temperature"] - 24.65), 1e-4)
+        self.assertLess(abs(data["pressure"] - 969.1056565652227), 1e-4)
+        self.assertLess(abs(data["humidity"] - 41.07329061361983), 1e-4)
 
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
-    def test_get_temperature(self):
+    def test_get_temperature(self) -> None:
         sensor = Sensor()
         temperature = sensor.get_temperature()
         self.assertLess(abs(temperature - 24.65), 1e-4)
 
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
-    def test_get_pressure(self):
+    def test_get_pressure(self) -> None:
         sensor = Sensor()
         pressure = sensor.get_pressure()
         self.assertLess(abs(pressure - 969.1056565652227), 1e-4)
 
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
-    def test_get_pressure_above_sea_level(self):
+    def test_get_pressure_above_sea_level(self) -> None:
         sensor = Sensor()
-        pressure = sensor.get_pressure(height_above_sea_level=440,
-                                       as_pressure_at_sea_level=True)
+        pressure = sensor.get_pressure(
+            height_above_sea_level=440,
+            as_pressure_at_sea_level=True,
+        )
         self.assertLess(abs(pressure - 1019.0420210), 1e-4)
 
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
-    def test_get_pressure_without_height_above_sea_level(self):
+    def test_get_pressure_without_height_above_sea_level(self) -> None:
         sensor = Sensor()
         with self.assertRaises(ValueError):
-            sensor.get_pressure(height_above_sea_level=None,
-                                as_pressure_at_sea_level=True)
+            sensor.get_pressure(
+                height_above_sea_level=None, as_pressure_at_sea_level=True
+            )
 
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
-    def test_get_humidity(self):
+    def test_get_humidity(self) -> None:
         sensor = Sensor()
         humidity = sensor.get_humidity()
         self.assertLess(abs(humidity - 41.07329061361983), 1e-4)
@@ -140,33 +178,41 @@ class TestSensor(TestCase):
         humidity = sensor.get_humidity(relative=False)
         self.assertLess(abs(humidity - 0.009291279797753835), 1e-4)
 
-    def test_unconfigured_i2c(self):
-        with mock.patch('smbus.SMBus', FileNotFoundSMBus):
+    def test_unconfigured_i2c(self) -> None:
+        fake_open = mock.mock_open(read_data="Revision\t: 0000\n")
+        with (
+            mock.patch("smbus2.SMBus", FileNotFoundSMBus),
+            mock.patch(f"{builtins.__name__}.open", fake_open),
+        ):
             with self.assertRaises(I2CException):
                 Sensor()
 
 
 class TestPrintSensor(TestCase):
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
-    def test(self):
+    def test(self) -> None:
         sensor = Sensor()
         self.assertEqual(sensor.chip_id, "fake_chip_id")
         self.assertEqual(sensor.chip_version, "fake_version")
 
-        ref_message = "Temperature:  24.65 C\n" + \
-                      "Humidity:     41.07 %\n" + \
-                      "Pressure:     969.1 hPa\n"
+        ref_message = (
+            "Temperature:  24.65 C\n"
+            + "Humidity:     41.07 %\n"
+            + "Pressure:     969.1 hPa\n"
+        )
 
         with mock.patch("sys.stdout", new_callable=io.StringIO) as fake_out:
             sensor.print_data()
             self.assertEqual(fake_out.getvalue(), ref_message)
 
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
-    def test_print_with_absolute_humidity(self):
+    def test_print_with_absolute_humidity(self) -> None:
         sensor = Sensor()
-        ref_message = "Temperature:  24.65 C\n" + \
-                      "Humidity:     0.009291 kg / m^3\n" + \
-                      "Pressure:     969.1 hPa\n"
+        ref_message = (
+            "Temperature:  24.65 C\n"
+            + "Humidity:     0.009291 kg / m^3\n"
+            + "Pressure:     969.1 hPa\n"
+        )
 
         with mock.patch("sys.stdout", new_callable=io.StringIO) as fake_out:
             sensor.print_data(relative_humidity=False)

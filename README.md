@@ -1,10 +1,20 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
 [![Build Status](https://github.com/MarcoAndreaBuchmann/bme280pi/workflows/Tests/badge.svg)](https://github.com/MarcoAndreaBuchmann/bme280pi/actions?query=workflow%3ATests)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/74442c7128065652d6da/test_coverage)](https://codeclimate.com/github/MarcoAndreaBuchmann/bme280pi/test_coverage)
+[![Test Coverage](https://qlty.sh/gh/marcoandreabuchmann/projects/bme280pi/coverage.svg)](https://qlty.sh/gh/marcoandreabuchmann/projects/bme280pi/)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/fb51e4dac5ee4e4bbf55c6615aae3597)](https://app.codacy.com/manual/MarcoAndreaBuchmann/bme280pi/dashboard)
-[![Maintainability](https://api.codeclimate.com/v1/badges/74442c7128065652d6da/maintainability)](https://codeclimate.com/github/MarcoAndreaBuchmann/bme280pi/maintainability)
+[![Maintainability](https://qlty.sh/gh/marcoandreabuchmann/projects/bme280pi/maintainability.svg)](https://qlty.sh/gh/marcoandreabuchmann/projects/bme280pi/)
 [![pypi](https://img.shields.io/pypi/v/bme280pi.svg)](https://pypi.org/project/bme280pi/)
 
 # bme280pi: the BME280 Sensor Reader for Raspberry Pi
+
+## Quickstart
+Try in a Jupyter notebook or directly:
+```python:disable-run
+from bme280pi import Sensor
+sensor = Sensor()
+print(sensor.get_data())
+```
 
 ## How to Install bme280pi
 
@@ -21,7 +31,7 @@ For a walk-through with screenshots see the references below.
 
 ### 2) Install Utilities
 
-1)  Install `python-smbus` and `i2ctools`: `sudo apt-get update && sudo apt-get install -y python-smbus i2c-tools`
+1)  Install `python3-smbus2` and `i2ctools`: `sudo apt-get update && sudo apt-get install -y python3-smbus2 i2c-tools`
 2)  Then, shut down your Raspberry Pi:`sudo halt` .
 3)  Disconnect your Raspberry Pi power supply.
 4)  You are now ready to connect the BME280 sensor.
@@ -46,6 +56,12 @@ git clone https://github.com/MarcoAndreaBuchmann/bme280pi.git
 cd bme280pi
 pip install .
 ```
+
+## Troubleshooting
+- I2C not working at all? Run `sudo raspi-config nonint get_i2c` to see if the port is enabled (0=enabled, 1=disabled). If the result is `1` (disabled), run `sudo raspi-config nonint do_i2c 0` to enable it and reboot.
+- I2C not detected? Run `i2cdetect -y 1` and ensure address 0x76/0x77.
+- Permission error: Add user to `i2c` group (`sudo usermod -aG i2c $USER`).
+- No data: Check connections; try forced mode in init.
 
 ## How to Use bme280pi In Your Script
 
@@ -121,6 +137,12 @@ plt.title("Relative Humidity (%)")
 
 plt.savefig("Measurements.png")
 ```
+## Advanced: Build Docs
+```bash
+pip install -r docs/requirements.txt
+cd docs && make html
+```
+Hosted at [ReadTheDocs](https://readthedocs.org/projects/bme280pi/)
 
 ## Reporting Issues
 

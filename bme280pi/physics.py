@@ -23,9 +23,10 @@ https://keisan.casio.com/keisan/image/Convertpressure.pdf
 """
 
 import math
+from typing import Union
 
 
-def validate_pressure(pressure):
+def validate_pressure(pressure: Union[float, int]) -> None:
     """Validate input pressure.
 
     Checks that pressure satisfies the following constraints:
@@ -47,10 +48,11 @@ def validate_pressure(pressure):
         raise ValueError("Pressure must be between 0 and 1100")
 
 
-def validate_temperature(temperature):
+def validate_temperature(temperature: Union[float, int]) -> None:
     """Validate input temperature.
 
     Checks that temperature satisfies the following constraints:
+
     - needs to be smaller than 100 degrees (humidity calculations
       don't make much sense above this temperature)
     - needs to be larger than -100 (same reason)
@@ -70,7 +72,7 @@ def validate_temperature(temperature):
         raise ValueError("Temperature must be between -100 and +100")
 
 
-def validate_humidity(rel_humidity):
+def validate_humidity(rel_humidity: Union[float, int]) -> None:
     """Validate input humidity.
 
     Checks that humidity satisfies the following constraints:
@@ -91,7 +93,7 @@ def validate_humidity(rel_humidity):
         raise ValueError("Rel. humidity must be between 0 and 100")
 
 
-def validate_height_above_sea_level(height_above_sea_level):
+def validate_height_above_sea_level(height_above_sea_level: Union[float, int]) -> None:
     """Validate height above sea level.
 
     Checks that height above sea level satisfies the following constraints:
@@ -110,11 +112,10 @@ def validate_height_above_sea_level(height_above_sea_level):
         raise TypeError("Height above sea level must be int or float")
 
     if height_above_sea_level <= 0 or height_above_sea_level > 11000:
-        raise ValueError("Height above sea level must be between zero " +
-                         "and 11000")
+        raise ValueError("Height above sea level must be between zero " + "and 11000")
 
 
-def pressure_function(pressure):
+def pressure_function(pressure: Union[float, int]) -> float:
     """Saturation vapor pressure function.
 
     Calculates the relevant factor to convert the saturation vapor pressure
@@ -130,24 +131,28 @@ def pressure_function(pressure):
     return 1.0016 + 3.16 * 1e-6 * pressure - 0.074 / pressure
 
 
-def calculate_abs_humidity(pressure, temperature, rel_humidity):
+def calculate_abs_humidity(
+    pressure: Union[float, int],
+    temperature: Union[float, int],
+    rel_humidity: Union[float, int],
+) -> float:
     """Calculate the absolute humidity.
 
     The absolute humidity is calculated in the following steps:
-    - we first calculate the saturation vapor pressure in pure phase (e_w)
-    - we use the pressure function f(p) to calculate the saturation vapor
-        pressure of moist air (e_w_moist)
-    - We can then calculate the absolute humidity using the formulae below.
 
-    We start with the ideal gas law, PV = m R T,
-        PV = (m/M) R T
-    where R is the universal gas constant (8.314 kg m^2 / s^2 mol K), and
-    transform it to
-        eV = m R_v T
-    where R_v is the specific gas constant for water vapor (461.5 J / kg K).
-    Then,
-        m / V = e / (R_v T)
-    which is the absolute humidity (i.e. mass of water vapor per volume).
+    1. Saturation vapor pressure over water (Magnus formula):
+       .. math:: e_w(T) = 6.112 \cdot \exp\left( \frac{17.62 \cdot T}{T + 243.12} \right)
+
+    2. Enhancement factor :math:`f(p)` accounts for real moist air
+
+    3. Actual vapor pressure:
+       .. math:: e = \frac{\text{rel\_humidity}}{100} \cdot f(p) \cdot e_w(T)
+
+    4. Absolute humidity (ideal gas law for water vapor):
+       .. math:: AH = \frac{e \cdot 100}{R_v \cdot T_K} \cdot 2.16679
+       .. math:: \quad\text{with } R_v = 461.5\,\text{J}\,\text{kg}^{-1}\,\text{K}^{-1}
+
+       The constant 2.16679 converts from hPa·K to g/m³.
 
     Args:
         pressure (int/float): pressure in hPa
@@ -174,11 +179,13 @@ def calculate_abs_humidity(pressure, temperature, rel_humidity):
     return vapor_pressure / (461.5 * (273.15 + temperature))
 
 
-def convert_pressure(pressure, unit='hPa'):
+def convert_pressure(pressure: Union[float, int], unit: str = "hPa") -> float:
     """Pressure in user-specified unit.
 
     Converts pressure from hPa (input) to the desired unit.
+
     Available options are:
+
      - hPa (`unit='hPa'`)
      - Pa (`unit='Pa'`)
      - kPa (`unit='kPa'`)
@@ -194,11 +201,13 @@ def convert_pressure(pressure, unit='hPa'):
     """
     validate_pressure(pressure)
 
-    conversion_factor = {"hPa": 1,
-                         "Pa": 100,
-                         "kPa": 0.1,
-                         "atm": 9.8692316931427E-4,
-                         "mmHg": 0.750062}
+    conversion_factor = {
+        "hPa": 1,
+        "Pa": 100,
+        "kPa": 0.1,
+        "atm": 9.8692316931427e-4,
+        "mmHg": 0.750062,
+    }
 
     if unit in conversion_factor:
         return conversion_factor[unit] * pressure
@@ -206,7 +215,9 @@ def convert_pressure(pressure, unit='hPa'):
     raise Exception("Unknown pressure unit: " + unit)
 
 
-def convert_temperature(temperature, unit='C'):
+def convert_temperature(
+    temperature: Union[float, int], unit: str = "C"
+) -> Union[float, int]:
     """Temperature in user-specified unit.
 
     Converts temperature from Celsius (input) to the desired unit.
@@ -224,19 +235,23 @@ def convert_temperature(temperature, unit='C'):
     """
     validate_temperature(temperature)
 
-    if unit == 'C':
+    if unit == "C":
         return temperature
 
-    if unit == 'F':
-        return temperature * (9. / 5) + 32.
+    if unit == "F":
+        return temperature * (9.0 / 5) + 32.0
 
-    if unit == 'K':
+    if unit == "K":
         return temperature + 273.15
 
     raise Exception("Unknown temperature unit: " + unit)
 
 
-def pressure_at_sea_level(pressure, temperature, height_above_sea_level):
+def pressure_at_sea_level(
+    pressure: Union[float, int],
+    temperature: Union[float, int],
+    height_above_sea_level: Union[float, int],
+) -> float:
     r"""Convert pressure to pressure at sea level.
 
     Uses a simple formula to convert the observed pressure to the equivalent
@@ -272,17 +287,17 @@ def pressure_at_sea_level(pressure, temperature, height_above_sea_level):
     gamma = -0.0065
     gravitational_acc = 9.80665
     r_d = 287
-    temp = convert_temperature(temperature, unit='K')
+    temp = convert_temperature(temperature, unit="K")
 
-    exponent = - gravitational_acc / (r_d * gamma)
+    exponent = -gravitational_acc / (r_d * gamma)
     nominator = gamma * height_above_sea_level
-    denominator = (temp - gamma * height_above_sea_level)
+    denominator = temp - gamma * height_above_sea_level
     base = 1 + nominator / denominator
 
-    return pressure / pow(base, exponent)
+    return float(pressure / pow(base, exponent))
 
 
-def round_to_n_significant_digits(value, n_digits):
+def round_to_n_significant_digits(value: Union[float, int], n_digits: int) -> float:
     """Round to n significant digits.
 
     Rounds a number to n significant digits, e.g. for 1234 the result
