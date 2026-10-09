@@ -66,20 +66,24 @@ class Sensor:
     >>> sensor.get_pressure(unit='mmHg')
     """
 
-    def __init__(self, address: int = 0x76):
+    def __init__(self, address: int = 0x76, bus_number: int | None = None):
         """Initialize the sensor class.
 
         Carries out the following steps to initialize the class:
 
-        - detect the Raspberry Pi version
+        - detect the Raspberry Pi version (unless `bus_number` is given)
         - initialize the bus
         - store information about the sensor in the class
 
         Args:
             address (int): the address of the sensor. default: 0x76
+            bus_number (int): the number of the I2C bus the sensor is
+                connected to (e.g. 1 for /dev/i2c-1). By default, the bus
+                is chosen based on the detected Raspberry Pi version, which
+                is bus 1 on all boards except the original Model B revision 1.
         """
         self.address = address
-        self.bus = self._initialize_bus()
+        self.bus = self._initialize_bus(bus_number)
 
         self.chip_id, self.chip_version = self._get_info_about_sensor()
 
@@ -221,28 +225,27 @@ class Sensor:
         print("Pressure:    ", pressure, pressure_unit)
 
     @staticmethod
-    def _initialize_bus() -> Any:
+    def _initialize_bus(bus_number: int | None = None) -> Any:
         """Initialize the bus.
 
-        Detects the raspberry pi version and initializes the bus.
-        Note that the Raspberry Pi version detection is necessary because
-        the first revisions needs to be initialized slightly differently.
+        If no bus number is given, detects the Raspberry Pi version and picks
+        the bus accordingly. The detection is necessary because the header
+        pins of the original Model B (revision 1) are wired to I2C bus 0,
+        whereas all later boards (Model B revision 2, Model A, B+, A+, and
+        everything newer) have them on bus 1.
+
+        Args:
+            bus_number (int): bus to use, or None to detect it automatically
 
         Returns:
             object: the bus to read data from
         """
-        bus = None
-        argument = 1
-        if detect_raspberry_pi_version() in [
-            "Model B R1",
-            "Model A",
-            "Model B+",
-            "Model A+",
-        ]:
-            argument = 0
+        if bus_number is None:
+            bus_number = 0 if detect_raspberry_pi_version() == "Model B R1" else 1
 
+        bus = None
         try:
-            bus = smbus2.SMBus(argument)
+            bus = smbus2.SMBus(bus_number)
         except FileNotFoundError:
             raise I2CException(
                 "SMBus raised a FileNotFoundError; this is "

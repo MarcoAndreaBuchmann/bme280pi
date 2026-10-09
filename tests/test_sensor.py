@@ -26,21 +26,22 @@ class FakeSMBus:
 class TestInitializeBus(TestCase):
     def test(self) -> None:
         # this test requires us to override the processor type and smbbus
+        # only the original Model B (revision 1) uses I2C bus 0
         known_revisions = {
             "0002": 0,
             "0003": 0,
             "0004": 1,
             "0005": 1,
             "0006": 1,
-            "0007": 0,
-            "0008": 0,
-            "0009": 0,
+            "0007": 1,
+            "0008": 1,
+            "0009": 1,
             "000d": 1,
             "000e": 1,
             "000f": 1,
-            "0010": 0,
+            "0010": 1,
             "0011": 1,
-            "0012": 0,
+            "0012": 1,
             "a01041": 1,
             "a21041": 1,
             "900092": 1,
@@ -59,6 +60,27 @@ class TestInitializeBus(TestCase):
                 with mock.patch("smbus2.SMBus", FakeSMBus):
                     sensor = Sensor()
                     self.assertEqual(sensor.bus.value, known_revisions[revision])
+
+
+class TestBusNumber(TestCase):
+    def test_explicit_bus_number_skips_detection(self) -> None:
+        with (
+            mock.patch("smbus2.SMBus", FakeSMBus),
+            mock.patch("bme280pi.sensor.detect_raspberry_pi_version") as detect,
+        ):
+            sensor = Sensor(bus_number=3)
+
+        detect.assert_not_called()
+        self.assertEqual(sensor.bus.value, 3)
+
+    def test_explicit_bus_number_overrides_old_model_b(self) -> None:
+        fake_open = mock.mock_open(read_data="Revision\t: 0002\n")
+        with (
+            mock.patch("smbus2.SMBus", FakeSMBus),
+            mock.patch("builtins.open", fake_open),
+        ):
+            self.assertEqual(Sensor().bus.value, 0)
+            self.assertEqual(Sensor(bus_number=1).bus.value, 1)
 
 
 class FakeDataBus:

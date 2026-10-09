@@ -47,15 +47,43 @@ def get_list_of_revisions() -> dict[str, str]:
     return known_revisions
 
 
+def normalize_revision(revision: str) -> str:
+    """Normalize a revision code as found in /proc/cpuinfo.
+
+    Old-style revision codes (e.g. "0002") carry additional flag bits on boards
+    whose over-voltage fuse has been blown: such a board reports "1000002"
+    instead of "0002". The flag bits are removed here so that the code can be
+    looked up in `get_list_of_revisions`. New-style revision codes (those with
+    bit 23 set, e.g. "a02082") are returned unchanged. Codes that cannot be
+    parsed as hexadecimal numbers are returned unchanged as well.
+
+    Args:
+        revision (str): revision code as a hexadecimal string
+
+    Returns:
+        str: normalized (lower case) revision code
+    """
+    revision = revision.lower()
+    try:
+        value = int(revision, 16)
+    except ValueError:
+        return revision
+
+    if value & 0x800000:
+        return revision
+
+    return f"{value & 0xFFFF:04x}"
+
+
 def detect_raspberry_pi_version() -> str:
     """Detect the Raspberry Pi Version.
 
     Detects the Raspberry Pi version based on CPU information.
     Note that if the model comes back as "Unknown", you may need
     to add it to the dictionary in `get_list_of_revisions`. The
-    current list is up-to-date as of June 2020.
-
-    Args:
+    current list is up-to-date as of June 2020. Only the original
+    Model B revision 1 needs to be recognized for the sensor to work,
+    so an "Unknown" model is harmless in practice.
 
     Returns:
         str: Raspberry Pi version
@@ -63,15 +91,15 @@ def detect_raspberry_pi_version() -> str:
     revision = "0000"
     known_revisions = get_list_of_revisions()
     try:
-        cpu_info = open("/proc/cpuinfo", "r")
-        for line in cpu_info:
-            if line.find("Revision") >= 0:
-                revision = line.rstrip().replace(" ", "").split(":")[1]
-        cpu_info.close()
+        with open("/proc/cpuinfo", "r") as cpu_info:
+            for line in cpu_info:
+                if line.find("Revision") >= 0:
+                    revision = line.rstrip().replace(" ", "").split(":")[1]
     except FileNotFoundError:
         warnings.warn("Could not find /proc/cpuinfo")
         return "Unknown"
 
+    revision = normalize_revision(revision)
     if revision in known_revisions:
         return known_revisions[revision]
 
