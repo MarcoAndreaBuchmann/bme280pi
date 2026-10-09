@@ -18,22 +18,23 @@ keywords = [
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Hardware",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "smbus2",
 ]
 
 [project.optional-dependencies]
 test = ["pytest"]
+dev = ["pytest", "coverage", "black", "isort", "flake8", "mypy"]
 
 [project.urls]
 Homepage = "https://github.com/MarcoAndreaBuchmann/bme280pi"
@@ -44,7 +45,7 @@ Homepage = "https://github.com/MarcoAndreaBuchmann/bme280pi"
 packages = { find = {} }
 
 [tool.setuptools.package-data]
-"bme280pi" = ["*.py"]
+"bme280pi" = ["py.typed"]
 
 [tool.black]
 line-length = 88
