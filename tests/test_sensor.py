@@ -1,6 +1,6 @@
 import builtins
 import io
-from typing import Any
+from typing import Any, cast
 from unittest import TestCase, mock
 
 from bme280pi.sensor import I2CException, Sensor
@@ -136,6 +136,45 @@ class FakeDataBus:
         return self.data[self.i_read]  # type: ignore[return-value]
 
 
+class FakeRegisterBus:
+    """
+    A fake bus that returns realistic data depending on the register that is
+    read, and records every register that is read or written.
+    """
+
+    def __init__(self, chip_id: int = 0x60) -> None:
+        reference = FakeDataBus().data
+        self.registers: dict[int, list[int]] = {
+            0xD0: [chip_id, 0],
+            0x88: cast(list[int], reference[1]),
+            0xA1: cast(list[int], reference[2]),
+            0xE1: cast(list[int], reference[3]),
+            0xF7: cast(list[int], reference[4]),
+        }
+        self.reads: list[int] = []
+        self.writes: list[tuple[int, int]] = []
+
+    def write_byte_data(
+        self, address: int, register: int, value: int, force: bool | None = None
+    ) -> None:
+        self.writes.append((register, value))
+
+    def read_i2c_block_data(
+        self, address: int, register: int, length: int, force: bool | None = None
+    ) -> list[int]:
+        self.reads.append(register)
+        return self.registers[register]
+
+
+def use_bus(bus: Any) -> Any:
+    """Patch Sensor._initialize_bus so that the sensor uses the given bus."""
+
+    def initialize_bus(*args: Any, **kwargs: Any) -> Any:
+        return bus
+
+    return mock.patch("bme280pi.Sensor._initialize_bus", initialize_bus)
+
+
 class FileNotFoundSMBus:
     def __init__(self, bus_address: int) -> None:
         """
@@ -208,6 +247,68 @@ class TestSensor(TestCase):
         ):
             with self.assertRaises(I2CException):
                 Sensor()
+
+
+class TestCalibrationIsReadOnce(TestCase):
+    def test(self) -> None:
+        bus = FakeRegisterBus()
+        with use_bus(bus):
+            sensor = Sensor()
+            first = sensor.get_data()
+            second = sensor.get_data()
+
+        self.assertEqual(first, second)
+        self.assertLess(abs(first["temperature"] - 24.65), 1e-4)
+        self.assertEqual(bus.reads.count(0x88), 1)
+        self.assertEqual(bus.reads.count(0xA1), 1)
+        self.assertEqual(bus.reads.count(0xE1), 1)
+        self.assertEqual(bus.reads.count(0xF7), 2)
+
+    def test_every_getter_makes_a_measurement(self) -> None:
+        bus = FakeRegisterBus()
+        with use_bus(bus):
+            sensor = Sensor()
+            sensor.get_temperature()
+            sensor.get_pressure()
+            sensor.get_humidity()
+
+        self.assertEqual(bus.reads.count(0xF7), 3)
+        self.assertEqual(bus.reads.count(0x88), 1)
+
+
+class TestOversampling(TestCase):
+    def test_default(self) -> None:
+        bus = FakeRegisterBus()
+        with use_bus(bus):
+            sensor = Sensor()
+            sensor.get_data()
+
+        self.assertEqual(
+            sensor.oversampling, {"temperature": 2, "pressure": 2, "humidity": 2}
+        )
+        # ctrl_hum (0xF2) and ctrl_meas (0xF4): osrs_t = 2, osrs_p = 2, forced mode
+        self.assertEqual(bus.writes, [(0xF2, 2), (0xF4, (2 << 5) | (2 << 2) | 1)])
+
+    def test_custom(self) -> None:
+        bus = FakeRegisterBus()
+        settings = {"temperature": 1, "pressure": 3, "humidity": 5}
+        with use_bus(bus):
+            sensor = Sensor(oversampling=settings)
+            sensor.get_data()
+
+        self.assertEqual(bus.writes, [(0xF2, 5), (0xF4, (1 << 5) | (3 << 2) | 1)])
+
+        # later changes to the dictionary do not affect the sensor
+        settings["pressure"] = 0
+        self.assertEqual(sensor.oversampling["pressure"], 3)
+
+    def test_invalid_settings_are_rejected_before_using_the_bus(self) -> None:
+        with mock.patch("bme280pi.Sensor._initialize_bus") as initialize_bus:
+            with self.assertRaises(ValueError):
+                Sensor(oversampling={"temperature": 9, "pressure": 2, "humidity": 2})
+            with self.assertRaises(KeyError):
+                Sensor(oversampling={"temperature": 2})
+        initialize_bus.assert_not_called()
 
 
 class TestPrintSensor(TestCase):

@@ -24,7 +24,7 @@ from bme280pi.physics import (
     round_to_n_significant_digits,
 )
 from bme280pi.raspberry_pi_version import detect_raspberry_pi_version
-from bme280pi.readout import read_sensor
+from bme280pi.readout import read_calibration_data, read_sensor, validate_oversampling
 
 
 class I2CException(Exception):
@@ -54,6 +54,9 @@ class Sensor:
     unit you would like the value to be in. For instance, the `get_temperature`
     function supports degrees C, F, or K.
 
+    Every `get_` call triggers a new measurement. If you need more than one
+    quantity, use `get_data()` to obtain all three from a single measurement.
+
     You can also use `print_data()` for a nicer presentation.
 
     Example usage:
@@ -66,14 +69,21 @@ class Sensor:
     >>> sensor.get_pressure(unit='mmHg')
     """
 
-    def __init__(self, address: int = 0x76, bus_number: int | None = None):
+    def __init__(
+        self,
+        address: int = 0x76,
+        bus_number: int | None = None,
+        oversampling: dict[str, int] | None = None,
+    ):
         """Initialize the sensor class.
 
         Carries out the following steps to initialize the class:
 
+        - validate the oversampling settings
         - detect the Raspberry Pi version (unless `bus_number` is given)
         - initialize the bus
         - store information about the sensor in the class
+        - read the calibration data of the sensor (once, not for every reading)
 
         Args:
             address (int): the address of the sensor. default: 0x76
@@ -81,11 +91,18 @@ class Sensor:
                 connected to (e.g. 1 for /dev/i2c-1). By default, the bus
                 is chosen based on the detected Raspberry Pi version, which
                 is bus 1 on all boards except the original Model B revision 1.
+            oversampling (dict): oversampling settings, with the keys
+                "temperature", "pressure", and "humidity". The values are the
+                register settings from the data sheet: 0 skips the measurement,
+                1-5 stand for an oversampling of x1, x2, x4, x8, and x16.
+                default: 2 (x2) for all three.
         """
         self.address = address
+        self.oversampling = dict(validate_oversampling(oversampling))
         self.bus = self._initialize_bus(bus_number)
 
         self.chip_id, self.chip_version = self._get_info_about_sensor()
+        self._calibration = read_calibration_data(self.bus, self.address)
 
     def get_temperature(self, unit: str = "C") -> float:
         """Get a temperature reading.
@@ -171,13 +188,18 @@ class Sensor:
         """Get a reading from the sensor.
 
         Fetches the latest humidity, temperature, and pressure data
-        from the sensor. The data is returned as a dictionary with
-        keys "temperature", "humidity", and "pressure".
+        from the sensor with a single measurement. The data is returned as
+        a dictionary with keys "temperature", "humidity", and "pressure".
 
         Returns:
             dict: dictionary with current temperature, humidity, and pressure
         """
-        return read_sensor(bus=self.bus, address=self.address)
+        return read_sensor(
+            bus=self.bus,
+            address=self.address,
+            oversampling=self.oversampling,
+            calibration=self._calibration,
+        )
 
     def print_data(
         self,

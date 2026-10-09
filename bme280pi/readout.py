@@ -22,7 +22,9 @@ The (helper) functions contained in this module are the following:
 - get_unsigned_short(data, index):
 - get_character(data, index):
 - get_unsigned_character(data, index):
-- read_raw_sensor(bus, address, oversampling, reg_data):
+- read_calibration_data(bus, address):
+- measurement_time_ms(oversampling):
+- read_raw_sensor(bus, address, oversampling, reg_data, calibration=None):
 - get_modified(cal, i, function, shift=False):
 - process_calibration_data(cal):
 - shift_read(values, i, j, k):
@@ -32,7 +34,7 @@ The (helper) functions contained in this module are the following:
 - improve_humidity_measurement(raw_humidity, dig_h, t_fine):
 - extract_values(data, dig_t, dig_p, dig_h):
 - validate_oversampling(oversampling=None):
-- read_sensor(bus, address, reg_data=0xF7,
+- read_sensor(bus, address, reg_data=0xF7, oversampling=None, calibration=None):
 
 Notes:
 1) This module is based on the bme280 script from MattHawkinsUK,
@@ -47,6 +49,15 @@ import time
 from collections.abc import Callable
 from ctypes import c_short
 from typing import Any
+
+# The keys of the oversampling dictionary, and the largest register value
+# (osrs_t/osrs_p/osrs_h) that can be written for each of them.
+OVERSAMPLING_KEYS = ("temperature", "pressure", "humidity")
+MAX_OVERSAMPLING_SETTING = 5
+
+# Oversampling factor for each register value (data sheet, tables 20/23/24):
+# 0 means the measurement is skipped, and 5 stands for x16.
+OVERSAMPLING_FACTOR = {0: 0, 1: 1, 2: 2, 3: 4, 4: 8, 5: 16}
 
 
 def get_short(data: list[int], index: int) -> int:
@@ -105,8 +116,61 @@ def get_unsigned_character(data: list[int], index: int) -> int:
     return result
 
 
+def read_calibration_data(bus: Any, address: int) -> list[list[int]]:
+    """Read the calibration data of the sensor.
+
+    The calibration data is stored in the non-volatile memory of the sensor and
+    never changes, so it is enough to read it once per sensor.
+    See page 22 of the data sheet.
+
+    Args:
+        bus (object): bus from which to read data
+        address (int): address at which to read data
+
+    Returns:
+        list: three blocks of calibration data
+    """
+    cal1 = bus.read_i2c_block_data(address, 0x88, 24)
+    cal2 = bus.read_i2c_block_data(address, 0xA1, 1)
+    cal3 = bus.read_i2c_block_data(address, 0xE1, 7)
+    return [cal1, cal2, cal3]
+
+
+def measurement_time_ms(oversampling: dict[str, int]) -> float:
+    """Maximum time a measurement takes, in milliseconds.
+
+    Implements the formula from Appendix B of the data sheet:
+
+        1.25 + 2.3 * T + (2.3 * P + 0.575) + (2.3 * H + 0.575)
+
+    where T, P, and H are the oversampling *factors* (1, 2, 4, 8, or 16), not
+    the register values. The terms of a skipped measurement (register value 0)
+    are left out.
+
+    Args:
+        oversampling (dict): validated oversampling settings (register values)
+
+    Returns:
+        float: maximum measurement time in milliseconds
+    """
+    temperature = OVERSAMPLING_FACTOR[oversampling["temperature"]]
+    pressure = OVERSAMPLING_FACTOR[oversampling["pressure"]]
+    humidity = OVERSAMPLING_FACTOR[oversampling["humidity"]]
+
+    wait_time = 1.25 + 2.3 * temperature
+    for factor in (pressure, humidity):
+        if factor:
+            wait_time += 2.3 * factor + 0.575
+
+    return wait_time
+
+
 def read_raw_sensor(
-    bus: Any, address: int, oversampling: dict[str, int], reg_data: int
+    bus: Any,
+    address: int,
+    oversampling: dict[str, int],
+    reg_data: int,
+    calibration: list[list[int]] | None = None,
 ) -> tuple[list[list[int]], Any]:
     """Read raw sensor data.
 
@@ -120,6 +184,8 @@ def read_raw_sensor(
         address (int): address at which to read data
         oversampling (dict): over-sampling rates (see data sheet)
         reg_data (int): register at which to obtain data
+        calibration (list): calibration data from `read_calibration_data`;
+            if it is not given, the calibration data is read from the sensor
 
     Returns:
         tuple: calibration data as a list, and sensor data
@@ -134,23 +200,17 @@ def read_raw_sensor(
     control = control1 | oversampling["pressure"] << 2 | 1
     bus.write_byte_data(address, control_register_address, control)
 
-    # Read blocks of calibration data from EEPROM
-    # See Page 22 data sheet
-    cal1 = bus.read_i2c_block_data(address, 0x88, 24)
-    cal2 = bus.read_i2c_block_data(address, 0xA1, 1)
-    cal3 = bus.read_i2c_block_data(address, 0xE1, 7)
+    if calibration is None:
+        calibration = read_calibration_data(bus, address)
 
-    # Wait in ms
+    # Wait the required time (in ms)
     # source: Datasheet Appendix B
-    wait_time = 2.4 + 2.3 * sum(oversampling.values())
-
-    # Wait the required time
-    time.sleep(wait_time / 1000)
+    time.sleep(measurement_time_ms(oversampling) / 1000)
 
     # Read temperature/pressure/humidity
     data = bus.read_i2c_block_data(address, reg_data, 8)
 
-    return [cal1, cal2, cal3], data
+    return calibration, data
 
 
 def get_modified(
@@ -400,19 +460,45 @@ def validate_oversampling(oversampling: dict[str, int] | None = None) -> dict[st
 
     Checks whether the parameter is valid. This parameter can either be None
     (to use the default values) or it can be a dictionary containing the
-    three keys "temperature", "humidity", and "pressure".
+    three keys "temperature", "humidity", and "pressure". Each value is the
+    register setting from the data sheet, i.e. an integer between 0 and 5:
+    0 skips the measurement, and 1 to 5 stand for an oversampling of x1, x2,
+    x4, x8, and x16.
 
     Args:
         oversampling (dict): None or a dictionary with over-sampling values
 
     Returns:
         dict: oversampling values as a dictionary
+
+    Raises:
+        TypeError: if the parameter or one of its values has the wrong type
+        KeyError: if one of the three keys is missing
+        ValueError: if there is an unknown key or a value is out of range
     """
     if oversampling is None:
         oversampling = {"temperature": 2, "pressure": 2, "humidity": 2}
 
     if not isinstance(oversampling, dict):
         raise TypeError("oversampling must be a dictionary")
+
+    missing = [key for key in OVERSAMPLING_KEYS if key not in oversampling]
+    if missing:
+        raise KeyError("oversampling is missing the key(s): " + ", ".join(missing))
+
+    unknown = [str(key) for key in oversampling if key not in OVERSAMPLING_KEYS]
+    if unknown:
+        raise ValueError("Unknown oversampling key(s): " + ", ".join(unknown))
+
+    for key in OVERSAMPLING_KEYS:
+        value = oversampling[key]
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise TypeError(f"oversampling['{key}'] must be an integer")
+        if not 0 <= value <= MAX_OVERSAMPLING_SETTING:
+            raise ValueError(
+                f"oversampling['{key}'] must be between 0 and "
+                f"{MAX_OVERSAMPLING_SETTING}, not {value}"
+            )
 
     return oversampling
 
@@ -422,12 +508,13 @@ def read_sensor(
     address: int,
     reg_data: int = 0xF7,
     oversampling: dict[str, int] | None = None,
+    calibration: list[list[int]] | None = None,
 ) -> dict[str, float]:
     """Read measurements from sensor.
 
     Reads the raw information from the sensor and converts it into a
     readable format. The function returns a dictionary with the measurements,
-    with the three keys "temperature",
+    with the three keys "temperature", "pressure", and "humidity".
     See the data sheet for more information, e.g. p27 for oversampling
     settings, App. B for measurement time, Sec. 4 for data readout, etc.
 
@@ -435,6 +522,10 @@ def read_sensor(
     for temperature/humidity/pressure. If you wish to specify your own
     oversampling parameters, please pass a dictionary to `oversampling` with
     the keys 'temperature', 'pressure', and 'humidity'.
+
+    The calibration data of the sensor never changes. By default it is read
+    from the sensor on every call; to avoid this, read it once with
+    `read_calibration_data` and pass it in via `calibration`.
 
     This module is based on the bme280 script from MattHawkinsUK, which in
     turn is based on the data sheet from Bosch (see references below).
@@ -444,6 +535,7 @@ def read_sensor(
         address (int): the address from which to read data
         reg_data (int): register at which to obtain data
         oversampling (dict): oversampling rates
+        calibration (list): calibration data from `read_calibration_data`
 
     Returns:
          dict: measurements for temperature, pressure, and humidity
@@ -454,7 +546,11 @@ def read_sensor(
     oversampling = validate_oversampling(oversampling=oversampling)
 
     cal, data = read_raw_sensor(
-        bus=bus, address=address, oversampling=oversampling, reg_data=reg_data
+        bus=bus,
+        address=address,
+        oversampling=oversampling,
+        reg_data=reg_data,
+        calibration=calibration,
     )
 
     dig_t, dig_p, dig_h = process_calibration_data(cal)
