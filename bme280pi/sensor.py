@@ -49,7 +49,7 @@ class Sensor:
 
     This class initializes the BME280 sensor, and offers an intuitive
     interface to access the sensor information. You can read out the
-    temperature, humidity, and pressure using the corresponding get_
+    temperature, humidity, and pressure using the corresponding ``get_*``
     commands:
 
         - `get_temperature`: get the current temperature
