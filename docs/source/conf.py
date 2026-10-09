@@ -10,20 +10,19 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import os
 import sys
+import tomllib
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
 
 # -- Project information -----------------------------------------------------
 project = "bme280pi"
 author = "MarcoAndreaBuchmann"
 master_doc = "index"
 
-import tomllib  # Python 3.11+ (or use 'tomli' on older versions)
-
-with open(os.path.abspath("../../pyproject.toml"), "rb") as f:
+with open(REPO_ROOT / "pyproject.toml", "rb") as f:
     data = tomllib.load(f)
 release = data["project"]["version"]
 
@@ -37,7 +36,6 @@ version = release
 extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinx.ext.autodoc",
-    "sphinx.ext.autodoc.typehints",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.autosummary",
     "sphinx.ext.mathjax",
@@ -48,6 +46,10 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
 ]
+
+# smbus2 is only needed to talk to real hardware; the docs build does not
+# install it, so mock it for autodoc.
+autodoc_mock_imports = ["smbus2"]
 
 # Nice typehints style
 autodoc_typehints = "description"
@@ -83,10 +85,9 @@ html_theme = "sphinx_rtd_theme"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named 'default.css' will overwrite the builtin 'default.css'.
-html_static_path = ["_static"]
+html_static_path: list[str] = []
 
-html_title = "hftbacktest"
-html_extra_path = ["_html"]
+html_title = "bme280pi"
 
 add_module_names = False
 autosummary_generate = True

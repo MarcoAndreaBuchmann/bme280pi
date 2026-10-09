@@ -1,5 +1,5 @@
 from typing import Any
-from unittest import TestCase
+from unittest import TestCase, mock
 
 from bme280pi.readout import (
     extract_raw_values,
@@ -12,9 +12,12 @@ from bme280pi.readout import (
     improve_humidity_measurement,
     improve_pressure_measurement,
     improve_temperature_measurement,
+    measurement_time_ms,
     process_calibration_data,
+    read_calibration_data,
     read_raw_sensor,
     read_sensor,
+    validate_oversampling,
 )
 from tests.test_sensor import FakeDataBus
 
@@ -102,6 +105,82 @@ class TestReadRawSensor(TestCase):
             self.assertEqual(bus.commands[i][3], correct_value[3])
             # check whether force was set
             self.assertEqual(bus.commands[i][4], correct_value[4])
+
+
+class TestReadCalibrationData(TestCase):
+    def test(self) -> None:
+        bus = FakeRecordingBus()
+        cals = read_calibration_data(bus=bus, address=0xFFFFF)
+        self.assertEqual(cals, [1, 2, 3])
+        self.assertEqual(
+            [command[:4] for command in bus.commands],
+            [
+                ["read_i2c_block_data", 0xFFFFF, 0x88, 24],
+                ["read_i2c_block_data", 0xFFFFF, 0xA1, 1],
+                ["read_i2c_block_data", 0xFFFFF, 0xE1, 7],
+            ],
+        )
+
+
+class TestMeasurementTime(TestCase):
+    @staticmethod
+    def settings(temperature: int, pressure: int, humidity: int) -> dict[str, int]:
+        return {"temperature": temperature, "pressure": pressure, "humidity": humidity}
+
+    def test_default(self) -> None:
+        # 1.25 + 2.3*2 + (2.3*2 + 0.575) + (2.3*2 + 0.575)
+        self.assertAlmostEqual(measurement_time_ms(self.settings(2, 2, 2)), 16.2)
+
+    def test_x1(self) -> None:
+        self.assertAlmostEqual(measurement_time_ms(self.settings(1, 1, 1)), 9.3)
+
+    def test_register_value_is_not_the_factor(self) -> None:
+        # register value 5 stands for x16, so the measurement takes
+        # about 113 ms (not the 37 ms a factor of 5 would give)
+        self.assertAlmostEqual(measurement_time_ms(self.settings(5, 5, 5)), 112.8)
+        # register value 3 stands for x4
+        self.assertAlmostEqual(
+            measurement_time_ms(self.settings(3, 3, 3)), 1.25 + 9.2 + 2 * (9.2 + 0.575)
+        )
+
+    def test_skipped_measurements(self) -> None:
+        self.assertAlmostEqual(measurement_time_ms(self.settings(0, 0, 0)), 1.25)
+        self.assertAlmostEqual(measurement_time_ms(self.settings(2, 2, 0)), 11.025)
+        self.assertAlmostEqual(measurement_time_ms(self.settings(2, 0, 2)), 11.025)
+
+
+class TestReadRawSensorWithCalibration(TestCase):
+    def test_calibration_is_not_read_again(self) -> None:
+        bus = FakeRecordingBus()
+        calibration = [[1], [2], [3]]
+        cals, data = read_raw_sensor(
+            bus=bus,
+            address=0xFFFFF,
+            oversampling={"temperature": 2, "pressure": 2, "humidity": 2},
+            reg_data=0xEEEEE,
+            calibration=calibration,
+        )
+        self.assertIs(cals, calibration)
+        self.assertEqual(data, 3)
+        self.assertEqual(
+            [command[:4] for command in bus.commands],
+            [
+                ["write_byte_data", 0xFFFFF, 0xF2, 2],
+                ["write_byte_data", 0xFFFFF, 0xF4, 73],
+                ["read_i2c_block_data", 0xFFFFF, 0xEEEEE, 8],
+            ],
+        )
+
+    def test_waits_for_the_measurement(self) -> None:
+        settings = {"temperature": 5, "pressure": 5, "humidity": 5}
+        with mock.patch("bme280pi.readout.time.sleep") as fake_sleep:
+            read_raw_sensor(
+                bus=FakeRecordingBus(),
+                address=0xFFFFF,
+                oversampling=settings,
+                reg_data=0xEEEEE,
+            )
+        fake_sleep.assert_called_once_with(measurement_time_ms(settings) / 1000)
 
 
 def get_reference_calibration_data() -> list[list[int]]:
@@ -255,3 +334,72 @@ class TestReadSensor(TestCase):
             read_sensor(
                 bus=fake_data_bus, address=0xFFFF, oversampling={"something": 2}
             )
+
+    def test_with_calibration(self) -> None:
+        # the bus only provides the sensor data; the calibration is passed in
+        fake_data_bus = FakeDataBus(starting_point=3)
+        correct_result = {
+            "temperature": 24.65,
+            "pressure": 969.1056565652227,
+            "humidity": 41.07329061361983,
+        }
+
+        test_result = read_sensor(
+            bus=fake_data_bus,
+            address=0xFFFFF,
+            calibration=get_reference_calibration_data(),
+        )
+
+        for k in test_result:
+            self.assertLess(abs(test_result[k] - correct_result[k]), 1e-4)
+
+    def test_invalid_oversampling_values(self) -> None:
+        fake_data_bus = FakeDataBus(0)
+        with self.assertRaises(ValueError):
+            read_sensor(
+                bus=fake_data_bus,
+                address=0xFFFF,
+                oversampling={"temperature": 2, "pressure": 6, "humidity": 2},
+            )
+
+
+class TestValidateOversampling(TestCase):
+    def test_default(self) -> None:
+        self.assertEqual(
+            validate_oversampling(None),
+            {"temperature": 2, "pressure": 2, "humidity": 2},
+        )
+
+    def test_valid(self) -> None:
+        for value in range(6):
+            settings = {"temperature": value, "pressure": 5 - value, "humidity": 1}
+            self.assertEqual(validate_oversampling(settings), settings)
+
+    def test_not_a_dictionary(self) -> None:
+        for value in ["some_string", 2, [2, 2, 2]]:
+            with self.assertRaises(TypeError):
+                validate_oversampling(value)  # type: ignore[arg-type]
+
+    def test_missing_key(self) -> None:
+        with self.assertRaisesRegex(KeyError, "humidity"):
+            validate_oversampling({"temperature": 2, "pressure": 2})
+
+    def test_unknown_key(self) -> None:
+        with self.assertRaisesRegex(ValueError, "humdity"):
+            validate_oversampling(
+                {"temperature": 2, "pressure": 2, "humidity": 2, "humdity": 2}
+            )
+
+    def test_out_of_range(self) -> None:
+        for bad_value in [-1, 6, 16]:
+            with self.assertRaisesRegex(ValueError, "pressure"):
+                validate_oversampling(
+                    {"temperature": 2, "pressure": bad_value, "humidity": 2}
+                )
+
+    def test_wrong_value_type(self) -> None:
+        for bad_value in [2.0, "2", True, None]:
+            with self.assertRaises(TypeError):
+                validate_oversampling(
+                    {"temperature": bad_value, "pressure": 2, "humidity": 2}  # type: ignore[dict-item]
+                )

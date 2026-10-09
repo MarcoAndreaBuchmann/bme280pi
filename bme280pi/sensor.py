@@ -12,15 +12,10 @@ documentation of the `Sensor` class itself.
 
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
-# Optional import of smbus2 – only available on real Raspberry Pi hardware
-# mypy: ignore-errors
-try:
-    import smbus2  # noqa: F401
-except ImportError:  # pragma: no cover
-    smbus2 = None  # type: ignore[misc]
-
+import smbus2
 
 from bme280pi.physics import (
     calculate_abs_humidity,
@@ -30,7 +25,12 @@ from bme280pi.physics import (
     round_to_n_significant_digits,
 )
 from bme280pi.raspberry_pi_version import detect_raspberry_pi_version
-from bme280pi.readout import read_sensor
+from bme280pi.readout import read_calibration_data, read_sensor, validate_oversampling
+
+# Value of the chip ID register (0xD0) of the BME280. The similar BMP280, which
+# has no humidity sensor, reports 0x56, 0x57, or 0x58 (see the data sheets).
+BME280_CHIP_ID = 0x60
+BMP280_CHIP_IDS = (0x56, 0x57, 0x58)
 
 
 class I2CException(Exception):
@@ -49,7 +49,7 @@ class Sensor:
 
     This class initializes the BME280 sensor, and offers an intuitive
     interface to access the sensor information. You can read out the
-    temperature, humidity, and pressure using the corresponding get_
+    temperature, humidity, and pressure using the corresponding ``get_*``
     commands:
 
         - `get_temperature`: get the current temperature
@@ -59,6 +59,9 @@ class Sensor:
     The functions each support the `unit` argument, so you can specify the
     unit you would like the value to be in. For instance, the `get_temperature`
     function supports degrees C, F, or K.
+
+    Every `get_` call triggers a new measurement. If you need more than one
+    quantity, use `get_data()` to obtain all three from a single measurement.
 
     You can also use `print_data()` for a nicer presentation.
 
@@ -72,22 +75,63 @@ class Sensor:
     >>> sensor.get_pressure(unit='mmHg')
     """
 
-    def __init__(self, address: int = 0x76):
+    def __init__(
+        self,
+        address: int = 0x76,
+        bus_number: int | None = None,
+        oversampling: dict[str, int] | None = None,
+    ):
         """Initialize the sensor class.
 
         Carries out the following steps to initialize the class:
 
-        - detect the Raspberry Pi version
+        - validate the oversampling settings
+        - detect the Raspberry Pi version (unless `bus_number` is given)
         - initialize the bus
         - store information about the sensor in the class
+        - warn if the chip is not a BME280 (e.g. a BMP280, which has no
+          humidity sensor)
+        - read the calibration data of the sensor (once, not for every reading)
 
         Args:
             address (int): the address of the sensor. default: 0x76
+            bus_number (int): the number of the I2C bus the sensor is
+                connected to (e.g. 1 for /dev/i2c-1). By default, the bus
+                is chosen based on the detected Raspberry Pi version, which
+                is bus 1 on all boards except the original Model B revision 1.
+            oversampling (dict): oversampling settings, with the keys
+                "temperature", "pressure", and "humidity". The values are the
+                register settings from the data sheet: 0 skips the measurement,
+                1-5 stand for an oversampling of x1, x2, x4, x8, and x16.
+                default: 2 (x2) for all three.
         """
         self.address = address
-        self.bus = self._initialize_bus()
+        self.oversampling = dict(validate_oversampling(oversampling))
+        self.bus = self._initialize_bus(bus_number)
 
         self.chip_id, self.chip_version = self._get_info_about_sensor()
+        self._check_chip_id()
+        self._calibration = read_calibration_data(self.bus, self.address)
+
+    def close(self) -> None:
+        """Close the bus.
+
+        Releases the I2C bus. The sensor cannot be read after this.
+        Alternatively, use the sensor as a context manager, which closes the
+        bus automatically:
+
+        >>> with Sensor() as sensor:
+        ...     data = sensor.get_data()
+        """
+        self.bus.close()
+
+    def __enter__(self) -> Sensor:
+        """Enter the context manager (see `close`)."""
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        """Close the bus when leaving the context manager."""
+        self.close()
 
     def get_temperature(self, unit: str = "C") -> float:
         """Get a temperature reading.
@@ -173,18 +217,23 @@ class Sensor:
         """Get a reading from the sensor.
 
         Fetches the latest humidity, temperature, and pressure data
-        from the sensor. The data is returned as a dictionary with
-        keys "temperature", "humidity", and "pressure".
+        from the sensor with a single measurement. The data is returned as
+        a dictionary with keys "temperature", "humidity", and "pressure".
 
         Returns:
             dict: dictionary with current temperature, humidity, and pressure
         """
-        return read_sensor(bus=self.bus, address=self.address)
+        return read_sensor(
+            bus=self.bus,
+            address=self.address,
+            oversampling=self.oversampling,
+            calibration=self._calibration,
+        )
 
     def print_data(
         self,
         temp_unit: str = "C",
-        relative_humidity: float = True,
+        relative_humidity: bool = True,
         pressure_unit: str = "hPa",
         n_significant_digits: int = 4,
     ) -> None:
@@ -227,28 +276,27 @@ class Sensor:
         print("Pressure:    ", pressure, pressure_unit)
 
     @staticmethod
-    def _initialize_bus() -> Any:
+    def _initialize_bus(bus_number: int | None = None) -> Any:
         """Initialize the bus.
 
-        Detects the raspberry pi version and initializes the bus.
-        Note that the Raspberry Pi version detection is necessary because
-        the first revisions needs to be initialized slightly differently.
+        If no bus number is given, detects the Raspberry Pi version and picks
+        the bus accordingly. The detection is necessary because the header
+        pins of the original Model B (revision 1) are wired to I2C bus 0,
+        whereas all later boards (Model B revision 2, Model A, B+, A+, and
+        everything newer) have them on bus 1.
+
+        Args:
+            bus_number (int): bus to use, or None to detect it automatically
 
         Returns:
             object: the bus to read data from
         """
-        bus = None
-        argument = 1
-        if detect_raspberry_pi_version() in [
-            "Model B R1",
-            "Model A",
-            "Model B+",
-            "Model A+",
-        ]:
-            argument = 0
+        if bus_number is None:
+            bus_number = 0 if detect_raspberry_pi_version() == "Model B R1" else 1
 
+        bus = None
         try:
-            bus = smbus2.SMBus(argument)
+            bus = smbus2.SMBus(bus_number)
         except FileNotFoundError:
             raise I2CException(
                 "SMBus raised a FileNotFoundError; this is "
@@ -261,6 +309,27 @@ class Sensor:
             )
 
         return bus
+
+    def _check_chip_id(self) -> None:
+        """Warn if the chip is not a BME280.
+
+        The chip ID register tells the BME280 apart from the BMP280, which looks
+        almost identical but has no humidity sensor. Its humidity readings are
+        meaningless, so this is worth pointing out.
+        """
+        if self.chip_id == BME280_CHIP_ID:
+            return
+
+        message = (
+            f"Unexpected chip ID 0x{self.chip_id:02x} at address "
+            f"0x{self.address:02x} (a BME280 reports 0x{BME280_CHIP_ID:02x})."
+        )
+        if self.chip_id in BMP280_CHIP_IDS:
+            message += (
+                " This looks like a BMP280, which has no humidity sensor: "
+                "the humidity readings will be meaningless."
+            )
+        warnings.warn(message, stacklevel=3)
 
     def _get_info_about_sensor(self) -> tuple[int, int]:
         """Fetch information about the sensor.

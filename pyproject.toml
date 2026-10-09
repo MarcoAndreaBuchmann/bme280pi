@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 61.0", "wheel"]
+requires = ["setuptools >= 77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,8 @@ name = "bme280pi"
 version = "1.2.1"
 description = "bme280pi: the BME280 Sensor Reader for Raspberry Pi"
 readme = { file = "README.md", content-type = "text/markdown" }
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Marco-Andrea Buchmann", email = "bmarcoa@gmail.com" }
 ]
@@ -18,22 +19,24 @@ keywords = [
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Hardware",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "smbus2",
 ]
 
 [project.optional-dependencies]
 test = ["pytest"]
+dev = ["pytest", "coverage", "black", "isort", "flake8", "mypy"]
 
 [project.urls]
 Homepage = "https://github.com/MarcoAndreaBuchmann/bme280pi"
@@ -41,14 +44,14 @@ Homepage = "https://github.com/MarcoAndreaBuchmann/bme280pi"
 "Source Code" = "https://github.com/MarcoAndreaBuchmann/bme280pi"
 
 [tool.setuptools]
-packages = { find = {} }
+packages = { find = { include = ["bme280pi*"] } }
 
 [tool.setuptools.package-data]
-"bme280pi" = ["*.py"]
+"bme280pi" = ["py.typed"]
 
 [tool.black]
 line-length = 88
-target-version = ['py311']
+target-version = ['py310']
 
 [tool.isort]
 profile = "black"

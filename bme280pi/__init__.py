@@ -16,12 +16,20 @@ functions.
 The standard units are degrees Celsius (C) for temperature, hectopascal (hPa)
 for pressure, and percentage for humidity. Other units are supported for
 temperature (F and K) and pressure (mm Hg, atm, Pa, kPa), and the humidity
-can also be indicated in absolute terms (i.e. g per m^3).
+can also be indicated in absolute terms (i.e. kg per m^3).
 
 For more in-depth information see the individual docstrings of the functions
 of the `Sensor` class.
 """
 
-from .sensor import Sensor
+from importlib.metadata import PackageNotFoundError, version
 
-__all__ = ["Sensor"]
+from .sensor import I2CException, Sensor
+
+try:
+    __version__ = version("bme280pi")
+except PackageNotFoundError:  # pragma: no cover
+    # running from a source tree that has not been installed
+    __version__ = "unknown"
+
+__all__ = ["I2CException", "Sensor", "__version__"]

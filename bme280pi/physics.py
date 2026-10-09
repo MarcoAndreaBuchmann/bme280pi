@@ -97,8 +97,12 @@ def validate_height_above_sea_level(height_above_sea_level: Union[float, int]) -
     """Validate height above sea level.
 
     Checks that height above sea level satisfies the following constraints:
-    - needs to be positive
+
+    - needs to be at least -500 (locations below sea level, such as the
+      shore of the Dead Sea at about -430 m, are valid)
     - needs to be smaller than 11000 (limit of validity of conversion formula)
+
+    Zero (i.e. exactly at sea level) is a valid height.
 
     A `ValueError` is raised if any of the assumptions are violated.
 
@@ -111,8 +115,8 @@ def validate_height_above_sea_level(height_above_sea_level: Union[float, int]) -
     if not isinstance(height_above_sea_level, (float, int)):
         raise TypeError("Height above sea level must be int or float")
 
-    if height_above_sea_level <= 0 or height_above_sea_level > 11000:
-        raise ValueError("Height above sea level must be between zero " + "and 11000")
+    if height_above_sea_level < -500 or height_above_sea_level > 11000:
+        raise ValueError("Height above sea level must be between -500 and 11000")
 
 
 def pressure_function(pressure: Union[float, int]) -> float:
@@ -136,23 +140,28 @@ def calculate_abs_humidity(
     temperature: Union[float, int],
     rel_humidity: Union[float, int],
 ) -> float:
-    """Calculate the absolute humidity.
+    r"""Calculate the absolute humidity.
 
     The absolute humidity is calculated in the following steps:
 
-    1. Saturation vapor pressure over water (Magnus formula):
+    1. Saturation vapor pressure over water (Magnus formula), in hPa:
+
        .. math:: e_w(T) = 6.112 \cdot \exp\left( \frac{17.62 \cdot T}{T + 243.12} \right)
 
-    2. Enhancement factor :math:`f(p)` accounts for real moist air
+    2. An enhancement factor :math:`f(p)` accounts for real moist air.
 
-    3. Actual vapor pressure:
-       .. math:: e = \frac{\text{rel\_humidity}}{100} \cdot f(p) \cdot e_w(T)
+    3. Actual vapor pressure, with the relative humidity :math:`RH` in percent.
+       The factor of 100 converting hPa to Pa cancels the one converting
+       percent to a fraction, so the result below is numerically in Pa:
 
-    4. Absolute humidity (ideal gas law for water vapor):
-       .. math:: AH = \frac{e \cdot 100}{R_v \cdot T_K} \cdot 2.16679
-       .. math:: \quad\text{with } R_v = 461.5\,\text{J}\,\text{kg}^{-1}\,\text{K}^{-1}
+       .. math:: e = RH \cdot f(p) \cdot e_w(T)
 
-       The constant 2.16679 converts from hPa·K to g/m³.
+    4. Absolute humidity (ideal gas law for water vapor), in kg/m^3:
+
+       .. math:: AH = \frac{e}{R_v \cdot T_K}
+
+       with :math:`R_v = 461.5\,\text{J}\,\text{kg}^{-1}\,\text{K}^{-1}` and
+       :math:`T_K` the temperature in Kelvin.
 
     Args:
         pressure (int/float): pressure in hPa
@@ -160,7 +169,7 @@ def calculate_abs_humidity(
         rel_humidity (int/float): relative humidity in percent (0-100)
 
     Returns:
-        float: humidity measurement value
+        float: absolute humidity in kg / m^3
     """
     validate_pressure(pressure)
     validate_temperature(temperature)
@@ -212,7 +221,11 @@ def convert_pressure(pressure: Union[float, int], unit: str = "hPa") -> float:
     if unit in conversion_factor:
         return conversion_factor[unit] * pressure
 
-    raise Exception("Unknown pressure unit: " + unit)
+    raise ValueError(
+        f"Unknown pressure unit: {unit!r} (use one of "
+        + ", ".join(conversion_factor)
+        + ")"
+    )
 
 
 def convert_temperature(
@@ -244,7 +257,7 @@ def convert_temperature(
     if unit == "K":
         return temperature + 273.15
 
-    raise Exception("Unknown temperature unit: " + unit)
+    raise ValueError(f"Unknown temperature unit: {unit!r} (use one of C, F, K)")
 
 
 def pressure_at_sea_level(
@@ -301,7 +314,8 @@ def round_to_n_significant_digits(value: Union[float, int], n_digits: int) -> fl
     """Round to n significant digits.
 
     Rounds a number to n significant digits, e.g. for 1234 the result
-    with 2 significant digits would be 1200.
+    with 2 significant digits would be 1200. Zero has no magnitude and is
+    returned unchanged (as a float).
 
     Args:
         value (float/int): the value to be rounded
@@ -316,5 +330,8 @@ def round_to_n_significant_digits(value: Union[float, int], n_digits: int) -> fl
         raise TypeError("Number of digits must be int")
     if not n_digits > 0:
         raise ValueError("Number of digits must be greater than zero")
+
+    if value == 0:
+        return 0.0
 
     return round(value, n_digits - 1 - int(math.floor(math.log10(abs(value)))))

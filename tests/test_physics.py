@@ -43,9 +43,13 @@ class TestValidation(TestCase):
         with self.assertRaises(TypeError):
             validate_height_above_sea_level("string_input")  # type: ignore[arg-type]
         with self.assertRaises(ValueError):
-            validate_height_above_sea_level(-1)
+            validate_height_above_sea_level(-501)
         with self.assertRaises(ValueError):
             validate_height_above_sea_level(12345)
+
+    def test_height_at_or_below_sea_level_is_valid(self) -> None:
+        for height in (0, -1, -430.5, -500):
+            validate_height_above_sea_level(height)
 
 
 class TestPressureFunction(TestCase):
@@ -160,8 +164,10 @@ class TestConvertPressure(TestCase):
 
         with self.assertRaises(TypeError):
             convert_pressure("a")  # type: ignore[arg-type]
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             convert_pressure(123, "UnknownUnit")
+        with self.assertRaises(ValueError):
+            convert_pressure(123, None)  # type: ignore[arg-type]
 
 
 class TestConvertTemperature(TestCase):
@@ -192,8 +198,10 @@ class TestConvertTemperature(TestCase):
 
         with self.assertRaises(TypeError):
             convert_temperature("a")  # type: ignore[arg-type]
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             convert_temperature(23, "UnknownUnit")
+        with self.assertRaises(ValueError):
+            convert_temperature(23, None)  # type: ignore[arg-type]
 
 
 class TestRoundToNSignificantDigits(TestCase):
@@ -214,6 +222,11 @@ class TestRoundToNSignificantDigits(TestCase):
                 test_result = round_to_n_significant_digits(test_value, n_digits)
                 self.assertLess(abs(correct_results[n_digits][i] - test_result), 1e-6)
 
+    def test_zero(self) -> None:
+        for n_digits in (1, 4, 10):
+            self.assertEqual(round_to_n_significant_digits(0, n_digits), 0.0)
+            self.assertEqual(round_to_n_significant_digits(0.0, n_digits), 0.0)
+
     def test_exceptions(self) -> None:
         with self.assertRaises(TypeError):
             round_to_n_significant_digits("a", 2)  # type: ignore[arg-type]
@@ -233,6 +246,19 @@ class TestPressureAtSeaLevel(TestCase):
             pressure=972, temperature=25, height_above_sea_level=440
         )
         self.assertLess(abs(p - 1022.03), 0.01)
+
+    def test_at_sea_level_is_identity(self) -> None:
+        p = pressure_at_sea_level(
+            pressure=1013.25, temperature=15, height_above_sea_level=0
+        )
+        self.assertLess(abs(p - 1013.25), 1e-9)
+
+    def test_below_sea_level_lowers_pressure(self) -> None:
+        p = pressure_at_sea_level(
+            pressure=1020, temperature=15, height_above_sea_level=-100
+        )
+        self.assertLess(p, 1020)
+        self.assertGreater(p, 1000)
 
     def test_exceptions(self) -> None:
         with self.assertRaises(TypeError):
