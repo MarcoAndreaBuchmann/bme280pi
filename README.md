@@ -72,6 +72,9 @@ pip install .
 - I2C not detected? Run `i2cdetect -y 1` and ensure address 0x76/0x77.
 - Permission error: Add user to `i2c` group (`sudo usermod -aG i2c $USER`).
 - No data or wrong values: Check the connections, and make sure the chip is a BME280. The similar BMP280 has no humidity sensor.
+  `Sensor()` emits a warning if the chip ID is not that of a BME280 (and says so if it looks like a BMP280).
+- Sensor on a different I2C bus? The bus is detected automatically (bus 1 on all boards except the
+  original Model B revision 1), but you can choose it with `Sensor(bus_number=...)`.
 
 ## How to Use bme280pi In Your Script
 
@@ -88,7 +91,8 @@ with temperature, humidity, and pressure readings.
 
 You can also just get the temperature (`sensor.get_temperature()`),
 just the pressure (`sensor.get_pressure()`), or
-just the humidity (`sensor.get_humidity()`).
+just the humidity (`sensor.get_humidity()`). Each of these calls triggers a new measurement,
+so if you need several quantities, use `sensor.get_data()` to get them all from one measurement.
 
 Note that all commands support user-specified units, e.g. `sensor.get_temperature(unit='F')`,
 or `sensor.get_pressure(unit='mmHg')`. Absolute humidity (`sensor.get_humidity(relative=False)`)
@@ -102,6 +106,27 @@ sensor.get_pressure(as_pressure_at_sea_level=True, height_above_sea_level=440)
 ```
 
 `sensor.print_data()` prints all three values in an easily readable format.
+
+### Oversampling and Releasing the Bus
+
+By default, each quantity is measured with an oversampling of x2. You can change this per quantity
+with register settings from the data sheet: `0` skips the measurement, and `1` to `5` stand for an
+oversampling of x1, x2, x4, x8, and x16 (more oversampling means less noise, but a longer measurement):
+
+```python
+from bme280pi import Sensor
+
+sensor = Sensor(oversampling={"temperature": 2, "pressure": 5, "humidity": 1})
+```
+
+Use the sensor as a context manager to release the I2C bus when you are done:
+
+```python
+from bme280pi import Sensor
+
+with Sensor() as sensor:
+    print(sensor.get_data())
+```
 
 ### Using Multiple Sensors
 
