@@ -49,6 +49,10 @@ extensions = [
     "sphinx_copybutton",
 ]
 
+# smbus2 is only needed to talk to real hardware; the docs build does not
+# install it, so mock it for autodoc.
+autodoc_mock_imports = ["smbus2"]
+
 # Nice typehints style
 autodoc_typehints = "description"
 autodoc_typehints_description_target = "all"
@@ -85,7 +89,7 @@ html_theme = "sphinx_rtd_theme"
 # so a file named 'default.css' will overwrite the builtin 'default.css'.
 html_static_path = ["_static"]
 
-html_title = "hftbacktest"
+html_title = "bme280pi"
 html_extra_path = ["_html"]
 
 add_module_names = False

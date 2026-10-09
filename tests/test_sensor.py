@@ -217,3 +217,18 @@ class TestPrintSensor(TestCase):
         with mock.patch("sys.stdout", new_callable=io.StringIO) as fake_out:
             sensor.print_data(relative_humidity=False)
             self.assertEqual(fake_out.getvalue(), ref_message)
+
+    @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
+    def test_print_with_zero_values(self) -> None:
+        sensor = Sensor()
+        zero_reading = {"temperature": 0.0, "pressure": 1000.0, "humidity": 0.0}
+
+        with (
+            mock.patch.object(sensor, "get_data", return_value=zero_reading),
+            mock.patch("sys.stdout", new_callable=io.StringIO) as fake_out,
+        ):
+            sensor.print_data()
+            sensor.print_data(relative_humidity=False)
+
+        self.assertIn("Temperature:  0.0 C", fake_out.getvalue())
+        self.assertIn("Humidity:     0.0 %", fake_out.getvalue())

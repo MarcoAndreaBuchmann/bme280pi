@@ -14,13 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-# Optional import of smbus2 – only available on real Raspberry Pi hardware
-# mypy: ignore-errors
-try:
-    import smbus2  # noqa: F401
-except ImportError:  # pragma: no cover
-    smbus2 = None  # type: ignore[misc]
-
+import smbus2
 
 from bme280pi.physics import (
     calculate_abs_humidity,
@@ -184,7 +178,7 @@ class Sensor:
     def print_data(
         self,
         temp_unit: str = "C",
-        relative_humidity: float = True,
+        relative_humidity: bool = True,
         pressure_unit: str = "hPa",
         n_significant_digits: int = 4,
     ) -> None:
