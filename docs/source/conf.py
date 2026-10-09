@@ -10,20 +10,19 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import os
 import sys
+import tomllib
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
 
 # -- Project information -----------------------------------------------------
 project = "bme280pi"
 author = "MarcoAndreaBuchmann"
 master_doc = "index"
 
-import tomllib  # Python 3.11+ (or use 'tomli' on older versions)
-
-with open(os.path.abspath("../../pyproject.toml"), "rb") as f:
+with open(REPO_ROOT / "pyproject.toml", "rb") as f:
     data = tomllib.load(f)
 release = data["project"]["version"]
 

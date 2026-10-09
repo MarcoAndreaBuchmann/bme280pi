@@ -10,7 +10,7 @@
 
 ## Quickstart
 Try in a Jupyter notebook or directly:
-```python:disable-run
+```python
 from bme280pi import Sensor
 sensor = Sensor()
 print(sensor.get_data())
@@ -31,7 +31,7 @@ For a walk-through with screenshots see the references below.
 
 ### 2) Install Utilities
 
-1)  Install `python3-smbus2` and `i2ctools`: `sudo apt-get update && sudo apt-get install -y python3-smbus2 i2c-tools`
+1)  Install `python3-smbus2` and `i2c-tools`: `sudo apt-get update && sudo apt-get install -y python3-smbus2 i2c-tools`
 2)  Then, shut down your Raspberry Pi:`sudo halt` .
 3)  Disconnect your Raspberry Pi power supply.
 4)  You are now ready to connect the BME280 sensor.
@@ -45,6 +45,16 @@ For a walk-through with screenshots see the references below.
 #### 4a) Installing With pip (Recommended)
 
 You can then install this module by running `pip install bme280pi`
+(Python 3.10 or newer is required).
+
+On Raspberry Pi OS Bookworm and later, `pip` refuses to install into the
+system Python (see PEP 668). Use a virtual environment instead:
+
+```bash
+python3 -m venv ~/bme280-env
+source ~/bme280-env/bin/activate
+pip install bme280pi
+```
 
 #### 4b) Installing From Source (alternative to 4a)
 
@@ -61,7 +71,7 @@ pip install .
 - I2C not working at all? Run `sudo raspi-config nonint get_i2c` to see if the port is enabled (0=enabled, 1=disabled). If the result is `1` (disabled), run `sudo raspi-config nonint do_i2c 0` to enable it and reboot.
 - I2C not detected? Run `i2cdetect -y 1` and ensure address 0x76/0x77.
 - Permission error: Add user to `i2c` group (`sudo usermod -aG i2c $USER`).
-- No data: Check connections; try forced mode in init.
+- No data or wrong values: Check the connections, and make sure the chip is a BME280. The similar BMP280 has no humidity sensor.
 
 ## How to Use bme280pi In Your Script
 
@@ -81,7 +91,17 @@ just the pressure (`sensor.get_pressure()`), or
 just the humidity (`sensor.get_humidity()`).
 
 Note that all commands support user-specified units, e.g. `sensor.get_temperature(unit='F')`,
-or `sensor.get_pressure(unit='mmHg')`.
+or `sensor.get_pressure(unit='mmHg')`. Absolute humidity (`sensor.get_humidity(relative=False)`)
+is returned in kg / m^3.
+
+For weather applications you can convert the pressure to its equivalent at sea level by passing
+your height above sea level in meters (negative values are allowed for locations below sea level):
+
+```python
+sensor.get_pressure(as_pressure_at_sea_level=True, height_above_sea_level=440)
+```
+
+`sensor.print_data()` prints all three values in an easily readable format.
 
 ### Using Multiple Sensors
 
