@@ -1,6 +1,7 @@
 import builtins
 import io
-from typing import Any, cast
+import warnings
+from typing import Any
 from unittest import TestCase, mock
 
 from bme280pi.sensor import I2CException, Sensor
@@ -11,16 +12,15 @@ class FakeSMBus:
         """
         This is a fake bus class (to replace SMBus).
         It records the value it is initialized with, and makes
-        it accessible for checks. It also reports its chip ID and
-        version as fake.
+        it accessible for checks. It also reports the chip ID of a BME280.
         """
         self.value = value
 
     @staticmethod
     def read_i2c_block_data(
         address: int, register: int, length: int, force: bool | None = None
-    ) -> tuple[str, str]:
-        return "fake_chip_id", "fake_version"
+    ) -> tuple[int, int]:
+        return 0x60, 0
 
 
 class TestInitializeBus(TestCase):
@@ -92,7 +92,7 @@ class FakeDataBus:
         """
         self.i_read = starting_point
         self.data = [
-            ["fake_chip_id", "fake_version"],
+            [0x60, 0],
             [
                 96,
                 110,
@@ -133,7 +133,7 @@ class FakeDataBus:
         self, address: int, register: int, length: int, force: bool | None = None
     ) -> list[int]:
         self.i_read += 1
-        return self.data[self.i_read]  # type: ignore[return-value]
+        return self.data[self.i_read]
 
 
 class FakeRegisterBus:
@@ -146,13 +146,14 @@ class FakeRegisterBus:
         reference = FakeDataBus().data
         self.registers: dict[int, list[int]] = {
             0xD0: [chip_id, 0],
-            0x88: cast(list[int], reference[1]),
-            0xA1: cast(list[int], reference[2]),
-            0xE1: cast(list[int], reference[3]),
-            0xF7: cast(list[int], reference[4]),
+            0x88: reference[1],
+            0xA1: reference[2],
+            0xE1: reference[3],
+            0xF7: reference[4],
         }
         self.reads: list[int] = []
         self.writes: list[tuple[int, int]] = []
+        self.closed = False
 
     def write_byte_data(
         self, address: int, register: int, value: int, force: bool | None = None
@@ -164,6 +165,9 @@ class FakeRegisterBus:
     ) -> list[int]:
         self.reads.append(register)
         return self.registers[register]
+
+    def close(self) -> None:
+        self.closed = True
 
 
 def use_bus(bus: Any) -> Any:
@@ -192,8 +196,8 @@ class TestSensor(TestCase):
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
     def test_get_data(self) -> None:
         sensor = Sensor()
-        self.assertEqual(sensor.chip_id, "fake_chip_id")
-        self.assertEqual(sensor.chip_version, "fake_version")
+        self.assertEqual(sensor.chip_id, 0x60)
+        self.assertEqual(sensor.chip_version, 0)
 
         data = sensor.get_data()
         self.assertLess(abs(data["temperature"] - 24.65), 1e-4)
@@ -311,12 +315,75 @@ class TestOversampling(TestCase):
         initialize_bus.assert_not_called()
 
 
+class TestChipId(TestCase):
+    def test_bme280_does_not_warn(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            with use_bus(FakeRegisterBus(chip_id=0x60)):
+                Sensor()
+
+    def test_bmp280_warns_about_missing_humidity_sensor(self) -> None:
+        for chip_id in (0x56, 0x57, 0x58):
+            with use_bus(FakeRegisterBus(chip_id=chip_id)):
+                with self.assertWarnsRegex(UserWarning, "BMP280.*no humidity sensor"):
+                    Sensor()
+
+    def test_unknown_chip_warns(self) -> None:
+        with use_bus(FakeRegisterBus(chip_id=0x61)):
+            with self.assertWarns(UserWarning) as context:
+                Sensor(address=0x77)
+
+        message = str(context.warning)
+        self.assertIn("0x61", message)
+        self.assertIn("0x77", message)
+        self.assertNotIn("BMP280", message)
+
+    def test_warning_points_at_the_caller(self) -> None:
+        with use_bus(FakeRegisterBus(chip_id=0x58)):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                Sensor()
+
+        self.assertEqual(len(caught), 1)
+        self.assertEqual(caught[0].filename, __file__)
+
+
+class TestClose(TestCase):
+    def test_close(self) -> None:
+        bus = FakeRegisterBus()
+        with use_bus(bus):
+            sensor = Sensor()
+
+        self.assertFalse(bus.closed)
+        sensor.close()
+        self.assertTrue(bus.closed)
+
+    def test_context_manager(self) -> None:
+        bus = FakeRegisterBus()
+        with use_bus(bus):
+            with Sensor() as sensor:
+                data = sensor.get_data()
+                self.assertFalse(bus.closed)
+
+        self.assertLess(abs(data["temperature"] - 24.65), 1e-4)
+        self.assertTrue(bus.closed)
+
+    def test_context_manager_closes_on_error(self) -> None:
+        bus = FakeRegisterBus()
+        with use_bus(bus):
+            with self.assertRaises(RuntimeError):
+                with Sensor():
+                    raise RuntimeError("something went wrong")
+
+        self.assertTrue(bus.closed)
+
+
 class TestPrintSensor(TestCase):
     @mock.patch("bme280pi.Sensor._initialize_bus", initialize_fake_bus)
     def test(self) -> None:
         sensor = Sensor()
-        self.assertEqual(sensor.chip_id, "fake_chip_id")
-        self.assertEqual(sensor.chip_version, "fake_version")
+        self.assertEqual(sensor.chip_id, 0x60)
+        self.assertEqual(sensor.chip_version, 0)
 
         ref_message = (
             "Temperature:  24.65 C\n"

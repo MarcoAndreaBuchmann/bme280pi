@@ -12,6 +12,7 @@ documentation of the `Sensor` class itself.
 
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import smbus2
@@ -25,6 +26,11 @@ from bme280pi.physics import (
 )
 from bme280pi.raspberry_pi_version import detect_raspberry_pi_version
 from bme280pi.readout import read_calibration_data, read_sensor, validate_oversampling
+
+# Value of the chip ID register (0xD0) of the BME280. The similar BMP280, which
+# has no humidity sensor, reports 0x56, 0x57, or 0x58 (see the data sheets).
+BME280_CHIP_ID = 0x60
+BMP280_CHIP_IDS = (0x56, 0x57, 0x58)
 
 
 class I2CException(Exception):
@@ -83,6 +89,8 @@ class Sensor:
         - detect the Raspberry Pi version (unless `bus_number` is given)
         - initialize the bus
         - store information about the sensor in the class
+        - warn if the chip is not a BME280 (e.g. a BMP280, which has no
+          humidity sensor)
         - read the calibration data of the sensor (once, not for every reading)
 
         Args:
@@ -102,7 +110,28 @@ class Sensor:
         self.bus = self._initialize_bus(bus_number)
 
         self.chip_id, self.chip_version = self._get_info_about_sensor()
+        self._check_chip_id()
         self._calibration = read_calibration_data(self.bus, self.address)
+
+    def close(self) -> None:
+        """Close the bus.
+
+        Releases the I2C bus. The sensor cannot be read after this.
+        Alternatively, use the sensor as a context manager, which closes the
+        bus automatically:
+
+        >>> with Sensor() as sensor:
+        ...     data = sensor.get_data()
+        """
+        self.bus.close()
+
+    def __enter__(self) -> Sensor:
+        """Enter the context manager (see `close`)."""
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        """Close the bus when leaving the context manager."""
+        self.close()
 
     def get_temperature(self, unit: str = "C") -> float:
         """Get a temperature reading.
@@ -280,6 +309,27 @@ class Sensor:
             )
 
         return bus
+
+    def _check_chip_id(self) -> None:
+        """Warn if the chip is not a BME280.
+
+        The chip ID register tells the BME280 apart from the BMP280, which looks
+        almost identical but has no humidity sensor. Its humidity readings are
+        meaningless, so this is worth pointing out.
+        """
+        if self.chip_id == BME280_CHIP_ID:
+            return
+
+        message = (
+            f"Unexpected chip ID 0x{self.chip_id:02x} at address "
+            f"0x{self.address:02x} (a BME280 reports 0x{BME280_CHIP_ID:02x})."
+        )
+        if self.chip_id in BMP280_CHIP_IDS:
+            message += (
+                " This looks like a BMP280, which has no humidity sensor: "
+                "the humidity readings will be meaningless."
+            )
+        warnings.warn(message, stacklevel=3)
 
     def _get_info_about_sensor(self) -> tuple[int, int]:
         """Fetch information about the sensor.
